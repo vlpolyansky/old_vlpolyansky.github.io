@@ -1,6 +1,34 @@
 // Setup
 
-var scene = new THREE.Scene();
+String.prototype.format = function() {
+    var args = arguments;
+    return this.replace(/{(\d+)}/g, function(match, number) {
+        return typeof args[number] != 'undefined'
+            ? args[number]
+            : match
+            ;
+    });
+};
+
+var dataFolders = [
+    'data/label0/',
+    'data/label1/',
+    'data/label2/',
+    'data/label3/',
+    'data/label4/',
+    'data/label5/',
+    'data/label6/',
+    'data/label7/',
+    'data/label8/',
+    'data/label9/',
+    'data/labelall/'
+];
+var sc = 10;
+var i = undefined;
+
+scenes = {};
+
+var scene = undefined;
 var camera = new THREE.PerspectiveCamera( 75, window.innerWidth/window.innerHeight, 0.1, 1000 );
 var controls = new THREE.OrbitControls(camera);
 
@@ -10,55 +38,38 @@ document.body.appendChild( renderer.domElement );
 
 camera.position.z = 5;
 
-var dataFolder = 'data/label6rot/';
-var i = undefined;
+var properties = {};
+var imageSize = {};
 
-var properties = JSON.parse(loadtext(dataFolder + 'properties.json'));
-var imageSize = properties.imageSize;
-
-
-
-// Images
-var imagesBinary = undefined;
-loadbytearray(dataFolder + 'images.bin', function (data) {
-    imagesBinary = data;
-});
-var labels = loadarray(dataFolder + 'labels.txt', parseInt);
+var imagesBinary = {};
+var labels = {};
 
 
 // Points
-var data = loadarray(dataFolder + 'points_3d.txt', parseFloat, 1);
+var data = {};
+var pointsComponent = {};
+
+var labelColors = [];
+for (i = 0; i < 10; i++) {
+    var c = rainbow(10, i);
+    c = c | 0x7f7f7f;
+    labelColors.push(new THREE.Color(c));
+}
+
 function makePointsComponent(data, labels) {
     var uniqueLabels = unique(labels);
-    var colors = [];
-    var i, j;
-    for (i = 0; i < uniqueLabels.length; i++) {
-        var c = rainbow(uniqueLabels.length, i);
-        c = c | 0x7f7f7f;
-        colors.push(new THREE.Color(c));
-    }
     var geometry = new THREE.Geometry();
     for (i = 0; i < data.length; i++) {
         geometry.vertices.push(new THREE.Vector3(data[i][0], data[i][1], data[i][2]));
-        // var c = new THREE.Color();
-        // c.setHSL( Math.random(), 1.0, 0.5 );
-        // geometry.colors.push(c);
-        for (j = 0; j < uniqueLabels.length; j++) {
-            if (labels[i][0] === uniqueLabels[j][0]) {
-                geometry.colors.push(colors[j]);
-                break;
-            }
-        }
+        geometry.colors.push(labelColors[labels[i][0]]);
     }
     var material = new THREE.PointsMaterial({size: 1, vertexColors: THREE.VertexColors, sizeAttenuation: false});
     return new THREE.Points(geometry, material);
 }
-var pointsComponent = makePointsComponent(data, labels);
-scene.add(pointsComponent);
 
 
 // Filtered Points
-function makeFilteredPointsComponent(dataFiltered) {
+function makeFilteredPointsComponent(dataFiltered, data, pointsComponent) {
     var geometry = new THREE.Geometry();
     for (var i = 0; i < dataFiltered.length; i++) {
         geometry.vertices.push(new THREE.Vector3(data[dataFiltered[i]][0], data[dataFiltered[i]][1], data[dataFiltered[i]][2]));
@@ -67,20 +78,13 @@ function makeFilteredPointsComponent(dataFiltered) {
     var material = new THREE.PointsMaterial({size: 1, vertexColors: THREE.VertexColors, sizeAttenuation: false});
     return new THREE.Points(geometry, material);
 }
-
-var dataFiltered = loadarray(dataFolder + 'filtered_points.txt', parseInt);
-if (dataFiltered == null) {
-    dataFiltered = [];
-    for (i = 0; i < data.length; i++) {
-        dataFiltered.push(i);
-    }
-}
-var filteredPointsComponent = makeFilteredPointsComponent(dataFiltered);
-var showFilteredPoints = false;
+var dataFiltered = {};
+var filteredPointsComponent = {};
+var showFilteredPoints = {};
 
 
 // Cycles
-function makeCycleComponent(cycle, color) {
+function makeCycleComponent(cycle, color, data) {
     var geometry, i, material;
     if (cycle[0].length === 1) {
         // H1
@@ -116,7 +120,7 @@ function makeCycleComponent(cycle, color) {
     }
 
 }
-function makeKillerComponent(killer, color) {
+function makeKillerComponent(killer, color, data) {
     var geometry = new THREE.Geometry();
     var material = undefined;
     for (var i = 0; i < killer.length; i++) {
@@ -146,27 +150,9 @@ function makeKillerComponent(killer, color) {
 
 }
 var colors = [0xff0000, 0x00ff00, 0xffff00, 0xff00ff];
-var cycleComponents = [];
-var killerComponents = [];
-var selectedCycle = -1;
-for (i = 0; i < 4; i++) {
-    var cycle = loadarray(dataFolder + 'cycle_' + i.toString() + '.txt', parseInt);
-    if (cycle != null) {
-        var cycleComponent = makeCycleComponent(cycle, colors[i]);
-        scene.add(cycleComponent);
-        cycleComponents.push(cycleComponent);
-    } else {
-        cycleComponents.push(null);
-    }
-    var killer = loadarray(dataFolder + 'killer_' + i.toString() + '.txt', parseInt);
-    if (killer != null) {
-        var killerComponent = makeKillerComponent(killer, colors[i]);
-        scene.add(killerComponent);
-        killerComponents.push(killerComponent);
-    } else {
-        killerComponents.push(null);
-    }
-}
+var cycleComponents = {};
+var killerComponents = {};
+var selectedCycle = {};
 
 // Selected point
 function makeSelectedPointComponent() {
@@ -174,9 +160,8 @@ function makeSelectedPointComponent() {
     var material = new THREE.PointsMaterial({size: 8, color: 0xff0000, sizeAttenuation: false});
     return new THREE.Points(geometry, material);
 }
-var selectedIndex = undefined;
-var selectedPointComponent = makeSelectedPointComponent();
-scene.add(selectedPointComponent);
+var selectedIndex = {};
+var selectedPointComponent = {};
 
 // Controlling
 function setVisible(object, vis) {
@@ -193,15 +178,32 @@ function switchVisible(object) {
 }
 document.addEventListener("keydown", onDocumentKeyDown, false);
 function onDocumentKeyDown(event) {
+    var new_sc = undefined;
     var keyCode = event.which;
     if (keyCode === 70) { // F
-        showFilteredPoints = !showFilteredPoints;
-        setVisible(pointsComponent, !showFilteredPoints);
-        setVisible(filteredPointsComponent, showFilteredPoints);
-    } else if (keyCode >= 48 && keyCode <= 57) { // 0-9
-        selectedCycle = keyCode - 48 - 1;
+        showFilteredPoints[sc] = !showFilteredPoints[sc];
+        setVisible(pointsComponent[sc], !showFilteredPoints[sc]);
+        setVisible(filteredPointsComponent[sc], showFilteredPoints[sc]);
+    } else if (keyCode >= 96 && keyCode <= 105) { // NUM_0-NUM_9
+        selectedCycle[sc] = keyCode - 96 - 1;
         updateSelectedCycle();
+    } else if (keyCode >= 48 && keyCode <= 57) { // 0-9
+        new_sc = keyCode - 48;
+        if (scenes[new_sc] == null) {
+            initScene(new_sc);
+        }
+        sc = new_sc;
+        scene = scenes[sc];
+    } else if (keyCode === 8) { // Backspace
+        new_sc = 10;
+        if (scenes[new_sc] == null) {
+            initScene(new_sc);
+        }
+        sc = new_sc;
+        scene = scenes[sc];
     }
+
+    updateInfo();
 }
 
 // Selected image
@@ -214,7 +216,10 @@ function makeSelectedImageSprite() {
     sprite.scale.set(scale, scale, scale);
     return sprite;
 }
-var selectedImageSprite = makeSelectedImageSprite();
+var selectedImageSprite = {};
+
+scene = initScene(sc);
+updateInfo();
 
 // Rendering & ray casting
 var raycaster = new THREE.Raycaster();
@@ -243,40 +248,40 @@ var animate = function () {
     raycaster.setFromCamera( mouse, camera );
 
     // calculate objects intersecting the picking ray
-    var component = !showFilteredPoints ? pointsComponent : filteredPointsComponent;
+    var component = !showFilteredPoints[sc] ? pointsComponent[sc] : filteredPointsComponent[sc];
     var intersects = raycaster.intersectObject(component);
     if (intersects.length > 0) {
         var idx = intersects[0].index;
-        if (showFilteredPoints) {
-            idx = dataFiltered[idx][0];
+        if (showFilteredPoints[sc]) {
+            idx = dataFiltered[sc][idx][0];
         }
-        if (selectedIndex !== idx) {
-            selectedIndex = idx;
-            var point = pointsComponent.geometry.vertices[idx];
-            selectedPointComponent.geometry.vertices = [point];
-            selectedPointComponent.geometry.verticesNeedUpdate = true;
-            scene.add(selectedPointComponent);
+        if (selectedIndex[sc] !== idx) {
+            selectedIndex[sc] = idx;
+            var point = pointsComponent[sc].geometry.vertices[idx];
+            selectedPointComponent[sc].geometry.vertices = [point];
+            selectedPointComponent[sc].geometry.verticesNeedUpdate = true;
+            scene.add(selectedPointComponent[sc]);
 
             var pos = getScreenXY(point);
             // document.getElementById('info').innerText = coords.x + ' ' + coords.y;
 
-            if (spritesAllowed && imagesBinary != null) {
-                var len = imageSize[0] * imageSize[1] * imageSize[2];
-                var map = imagesBinary.slice(idx * len, (idx + 1) * len);
-                var texture = new THREE.DataTexture(map, imageSize[0], imageSize[1],
-                    imageSize[2] === 1 ? THREE.LuminanceFormat : THREE.RGBFormat);
+            if (spritesAllowed && imagesBinary[sc] != null) {
+                var len = imageSize[sc][0] * imageSize[sc][1] * imageSize[sc][2];
+                var map = imagesBinary[sc].slice(idx * len, (idx + 1) * len);
+                var texture = new THREE.DataTexture(map, imageSize[sc][0], imageSize[sc][1],
+                    imageSize[sc][2] === 1 ? THREE.LuminanceFormat : THREE.RGBFormat);
                 texture.flipY = true;
                 texture.needsUpdate = true;
-                selectedImageSprite.material.map = texture;
-                selectedImageSprite.material.map.needsUpdate = true;
-                selectedImageSprite.position.set(pos.x, pos.y, pos.z);
-                scene.add(selectedImageSprite);
+                selectedImageSprite[sc].material.map = texture;
+                selectedImageSprite[sc].material.map.needsUpdate = true;
+                selectedImageSprite[sc].position.set(pos.x, pos.y, pos.z);
+                scene.add(selectedImageSprite[sc]);
             }
         }
     } else {
-        selectedIndex = -1;
-        scene.remove(selectedPointComponent);
-        scene.remove(selectedImageSprite);
+        selectedIndex[sc] = -1;
+        scene.remove(selectedPointComponent[sc]);
+        scene.remove(selectedImageSprite[sc]);
     }
 
     renderer.render( scene, camera );
@@ -285,17 +290,17 @@ animate();
 
 // Functions
 function updateSelectedCycle() {
-    for (var i = 0; i < cycleComponents.length; i++) {
-        if (i === selectedCycle || selectedCycle === -1) {
-            if (cycleComponents[i] != null)
-                scene.add(cycleComponents[i]);
-            if (killerComponents[i] != null)
-                scene.add(killerComponents[i]);
+    for (var i = 0; i < cycleComponents[sc].length; i++) {
+        if (i === selectedCycle[sc] || selectedCycle[sc] === -1) {
+            if (cycleComponents[sc][i] != null)
+                scene.add(cycleComponents[sc][i]);
+            if (killerComponents[sc][i] != null)
+                scene.add(killerComponents[sc][i]);
         } else {
-            if (cycleComponents[i] != null)
-                scene.remove(cycleComponents[i]);
-            if (killerComponents[i] != null)
-                scene.remove(killerComponents[i]);
+            if (cycleComponents[sc][i] != null)
+                scene.remove(cycleComponents[sc][i]);
+            if (killerComponents[sc][i] != null)
+                scene.remove(killerComponents[sc][i]);
         }
     }
 }
@@ -307,24 +312,11 @@ function log(msg) {
 function getScreenXY(obj) {
 
     var vector = obj.clone();
-    // var windowWidth = window.innerWidth;
-    // var minWidth = 1280;
-    //
-    // if(windowWidth < minWidth) {
-    //     windowWidth = minWidth;
-    // }
-    //
-    // var widthHalf = (windowWidth/2);
-    // var heightHalf = (window.innerHeight/2);
-
     vector.project(camera);
     vector.x += spriteScale * 1.5;
     vector.y += spriteScale * 2;
     vector.z = 0.5;
     vector.unproject(camera);
-    // vector.x = ( vector.x * widthHalf ) + widthHalf;
-    // vector.y = - ( vector.y * heightHalf ) + heightHalf;
-    // vector.z = 0;
 
     return vector;
 
@@ -332,10 +324,90 @@ function getScreenXY(obj) {
 
 function disallowSprites() {
     spritesAllowed = false;
-    selectedIndex = -1;
-    scene.remove(selectedImageSprite);
-    scene.remove(selectedPointComponent);
+    selectedIndex[sc] = -1;
+    scene.remove(selectedImageSprite[sc]);
+    scene.remove(selectedPointComponent[sc]);
 }
 function allowSprites() {
     spritesAllowed = true;
+}
+
+function initScene(sc) {
+    var dataFolder = dataFolders[sc];
+
+    var scene = new THREE.Scene();
+    scenes[sc] = scene;
+
+    properties[sc] = JSON.parse(loadtext(dataFolder + 'properties.json'));
+    imageSize[sc] = properties[sc].imageSize;
+
+    // Images
+    loadbytearray(dataFolder + 'images.bin', function (data) {
+        imagesBinary[sc] = data;
+    });
+    labels[sc] = loadarray(dataFolder + 'labels.txt', parseInt);
+
+    // Points
+    data[sc] = loadarray(dataFolder + 'points_3d.txt', parseFloat, 1);
+    pointsComponent[sc] = makePointsComponent(data[sc], labels[sc]);
+    scene.add(pointsComponent[sc]);
+
+    // Filtered points
+    dataFiltered[sc] = loadarray(dataFolder + 'filtered_points.txt', parseInt);
+    if (dataFiltered[sc] == null) {
+        dataFiltered[sc] = [];
+        for (i = 0; i < data[sc].length; i++) {
+            dataFiltered[sc].push(i);
+        }
+    }
+    filteredPointsComponent[sc] = makeFilteredPointsComponent(dataFiltered[sc], data[sc], pointsComponent[sc]);
+    showFilteredPoints[sc] = false;
+
+    // Cycles
+    var colors = [0xff0000, 0x00ff00, 0xffff00, 0xff00ff];
+    cycleComponents[sc] = [];
+    killerComponents[sc] = [];
+    selectedCycle[sc] = -1;
+    for (i = 0; i < 4; i++) {
+        var cycle = loadarray(dataFolder + 'cycle_' + i.toString() + '.txt', parseInt);
+        if (cycle != null) {
+            var cycleComponent = makeCycleComponent(cycle, colors[i], data[sc]);
+            scene.add(cycleComponent);
+            cycleComponents[sc].push(cycleComponent);
+        } else {
+            cycleComponents[sc].push(null);
+        }
+        var killer = loadarray(dataFolder + 'killer_' + i.toString() + '.txt', parseInt);
+        if (killer != null) {
+            var killerComponent = makeKillerComponent(killer, colors[i], data[sc]);
+            scene.add(killerComponent);
+            killerComponents[sc].push(killerComponent);
+        } else {
+            killerComponents[sc].push(null);
+        }
+    }
+
+    // Selected point
+    selectedIndex[sc] = -1;
+    selectedPointComponent[sc] = makeSelectedPointComponent();
+    scene.add(selectedPointComponent[sc]);
+
+    // Selected image
+    selectedImageSprite[sc] = makeSelectedImageSprite();
+
+    return scene;
+}
+
+function updateInfo() {
+    var infoString = 'Information:<br>\n' +
+        '* Selected feature: <b>{0}</b><br>\n' +
+        '* Selected label: <b>{1}</b><br>\n' +
+        '* Filtered: <b>{2}</b><br>';
+    var selectedId = selectedCycle[sc] != null && selectedCycle[sc] >= 0 ? selectedCycle[sc] + 1 : '-';
+    if (selectedId !== '-') {
+        selectedId = '#' + selectedId;
+    }
+    var labelId = sc < 10 ? sc : 'all';
+    var showFiltered = showFilteredPoints[sc] ? 'yes' : 'no';
+    document.getElementById('info').innerHTML = infoString.format(selectedId, labelId, showFiltered);
 }

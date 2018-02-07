@@ -4,25 +4,43 @@
 		<style>
 			body { margin: 0; }
 			canvas { width: 100%; height: 100% }
-            #info {
+            #controls {
                 position: absolute;
-                top: 10px;
-                left: 10px;
-                width: 50%;
+                top: 15px;
+                left: 15px;
+                /*width: 50%;*/
                 /*text-align: center;*/
                 /*z-index: 100;*/
                 display: block;
-                color: white;
+                color: lightblue;
+            }
+            #info {
+                position: absolute;
+                top: 15px;
+                right: 15px;
+                font-size: 20px;
+                width: 200;
+                /*text-align: center;*/
+                /*z-index: 100;*/
+                display: block;
+                color: lightblue;
             }
 		</style>
 	</head>
 	<body>
-        <div id="info">
+        <div id="controls">
             Controls:<br>
-            &lt;1&gt;-&lt;9&gt;: Select a feature<br>
-            &lt;0&gt;: Show all features<br>
+            &lt;NUM_1&gt;-&lt;NUM_9&gt;: Select a feature<br>
+            &lt;NUM_0&gt;: Show all features<br>
+            &lt;0&gt;-&lt;9&gt;: Select a label<br>
+            &lt;Backspace&gt;: Show all labels<br>
             &lt;F&gt;: Switch between all points and <u>f</u>iltered points used for analysis<br>
-
+        </div>
+        <div id="info">
+            Information:<br>
+            * Selected feature: <br>
+            * Selected label: <br>
+            * Filtered: <br>
         </div>
 		<script src="js/three.js"></script>
 		<script src="js/OrbitControls.js"></script>
