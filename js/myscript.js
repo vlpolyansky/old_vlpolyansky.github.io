@@ -64,8 +64,9 @@ function makeCycleComponent(cycle, color) {
         for (i = 0; i < cycle.length; i++) {
             geometry.faces.push(new THREE.Face3(cycle[i][0], cycle[i][1], cycle[i][2]));
         }
-        material = new THREE.MeshBasicMaterial({color: color & 0x3f3f3f, opacity: 0.4});
+        material = new THREE.MeshBasicMaterial({color: color & 0x3f3f3f, opacity: 0.3});
         material.transparent = true;
+        material.depthWrite = false;
         material.side = THREE.DoubleSide;
         var mesh = new THREE.Mesh(geometry, material);
 
@@ -81,6 +82,7 @@ function makeCycleComponent(cycle, color) {
 }
 function makeKillerComponent(killer, color) {
     var geometry = new THREE.Geometry();
+    var material = undefined;
     for (var i = 0; i < killer.length; i++) {
         geometry.vertices.push(new THREE.Vector3(data[killer[i]][0], data[killer[i]][1], data[killer[i]][2]));
     }
@@ -90,11 +92,21 @@ function makeKillerComponent(killer, color) {
         geometry.faces.push(new THREE.Face3(0, 1, 3));
         geometry.faces.push(new THREE.Face3(0, 2, 3));
         geometry.faces.push(new THREE.Face3(1, 2, 3));
+        material = new THREE.MeshBasicMaterial({color: color & 0x7f7f7f, opacity: 0.6});
+    } else {
+        material = new THREE.MeshBasicMaterial({color: color & 0x7f7f7f, opacity: 0.6});
     }
-    var material = new THREE.MeshBasicMaterial({color: color, opacity: 0.6});
     material.transparent = true;
     material.side = THREE.DoubleSide;
-    return new THREE.Mesh(geometry, material);
+    var mesh = new THREE.Mesh(geometry, material);
+
+    var wireframeGeometry = new THREE.EdgesGeometry(mesh.geometry);
+    var wireframeMaterial = new THREE.LineBasicMaterial({color: color, linewidth: 2, opacity: 0.8});
+    wireframeMaterial.transparent = true;
+    var wireframe = new THREE.LineSegments(wireframeGeometry, wireframeMaterial);
+    mesh.add(wireframe);
+
+    return mesh;
 
 }
 var i = undefined;
@@ -121,6 +133,14 @@ for (i = 0; i < 4; i++) {
     }
 }
 
+// Selected point
+function makeSelectedPointComponent() {
+    var geometry = new THREE.Geometry();
+    var material = new THREE.PointsMaterial({size: 5, color: 0xff0000, sizeAttenuation: false});
+    return new THREE.Points(geometry, material);
+}
+var selectedPointComponent = makeSelectedPointComponent();
+scene.add(selectedPointComponent);
 
 // Controlling
 function setVisible(object, vis) {
@@ -148,9 +168,39 @@ function onDocumentKeyDown(event) {
     }
 }
 
-// Rendering
+// Rendering & ray casting
+var raycaster = new THREE.Raycaster();
+raycaster.params.Points.threshold = 0.005;
+var mouse = new THREE.Vector2();
+
+function onMouseMove( event ) {
+
+    // calculate mouse position in normalized device coordinates
+    // (-1 to +1) for both components
+
+    mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+    mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+}
+window.addEventListener('mousemove', onMouseMove, false);
+
 var animate = function () {
     requestAnimationFrame( animate );
+
+    // update the picking ray with the camera and mouse position
+    raycaster.setFromCamera( mouse, camera );
+
+    // calculate objects intersecting the picking ray
+    var component = !showFilteredPoints ? pointsComponent : filteredPointsComponent;
+    var intersects = raycaster.intersectObject(component);
+    if (intersects.length > 0) {
+        var idx = intersects[0].index;
+        var point = component.geometry.vertices[idx];
+        selectedPointComponent.geometry.vertices = [point];
+        selectedPointComponent.geometry.verticesNeedUpdate = true;
+    } else {
+        selectedPointComponent.geometry.vertices.pop();
+        selectedPointComponent.geometry.verticesNeedUpdate = true;
+    }
 
     renderer.render( scene, camera );
 };
