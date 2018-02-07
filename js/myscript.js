@@ -53,7 +53,7 @@ var pointsComponent = {};
 var labelColors = [];
 for (i = 0; i < 10; i++) {
     var c = rainbow(10, i);
-    c = c | 0x7f7f7f;
+    c = c | 0x3f3f3f;
     labelColors.push(new THREE.Color(c));
 }
 
