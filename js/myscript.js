@@ -42,6 +42,7 @@ var properties = {};
 var imageSize = {};
 
 var imagesBinary = {};
+var imagesBinarySliced = {};
 var labels = {};
 
 
@@ -120,6 +121,39 @@ function makeCycleComponent(cycle, color, data) {
     }
 
 }
+
+var cycleScale = 0.1;
+function makeCycleImagesComponent(cycle, data, imagesBinarySliced) {
+    var group = new THREE.Group();
+    var i;
+    if (cycle[0].length === 1) {
+        // H1
+        for (i = 0; i < cycle.length; i++) {
+            var idx = cycle[i];
+
+            var len = imageSize[sc][0] * imageSize[sc][1] * imageSize[sc][2];
+            var map = imagesBinarySliced[idx];
+            var texture = new THREE.DataTexture(map, imageSize[sc][0], imageSize[sc][1],
+                imageSize[sc][2] === 1 ? THREE.LuminanceFormat : THREE.RGBFormat);
+            texture.flipY = true;
+            texture.needsUpdate = true;
+
+            var spriteMaterial = new THREE.SpriteMaterial({map: texture, color: 0xffffff});
+
+            var sprite = new THREE.Sprite(spriteMaterial);
+            var scale = cycleScale;
+
+            sprite.position.set(data[idx][0], data[idx][1], data[idx][2]);
+            sprite.scale.set(scale, scale, scale);
+            sprite.needsUpdate = true;
+
+            group.add(sprite);
+        }
+    }
+
+    return group;
+}
+
 function makeKillerComponent(killer, color, data) {
     var geometry = new THREE.Geometry();
     var material = undefined;
@@ -151,6 +185,9 @@ function makeKillerComponent(killer, color, data) {
 }
 var colors = [0xff0000, 0x00ff00, 0xffff00, 0xff00ff];
 var cycleComponents = {};
+var cycles = {};
+var cycleImageComponents = {};
+var showCycleImages = false;
 var killerComponents = {};
 var selectedCycle = {};
 
@@ -187,20 +224,21 @@ function onDocumentKeyDown(event) {
     } else if (keyCode >= 96 && keyCode <= 105) { // NUM_0-NUM_9
         selectedCycle[sc] = keyCode - 96 - 1;
         updateSelectedCycle();
-    } else if (keyCode >= 48 && keyCode <= 57) { // 0-9
-        new_sc = keyCode - 48;
+    } else if (keyCode >= 48 && keyCode <= 57 || keyCode === 8) { // 0-9 or backspace
+        if (keyCode === 8) {
+            new_sc = 10;
+        } else {
+            new_sc = keyCode - 48;
+        }
         if (scenes[new_sc] == null) {
             initScene(new_sc);
         }
         sc = new_sc;
         scene = scenes[sc];
-    } else if (keyCode === 8) { // Backspace
-        new_sc = 10;
-        if (scenes[new_sc] == null) {
-            initScene(new_sc);
-        }
-        sc = new_sc;
-        scene = scenes[sc];
+        updateSelectedCycle();
+    } else if (keyCode === 65) { // A
+        showCycleImages = !showCycleImages;
+        updateSelectedCycle();
     }
 
     updateInfo();
@@ -290,10 +328,17 @@ animate();
 
 // Functions
 function updateSelectedCycle() {
+    var sel = selectedCycle[sc];
+    if (imagesBinary[sc] != null && sel !== -1 && cycleComponents[sc][sel] != null
+            && cycleImageComponents[sc][sel] == null) {
+        cycleImageComponents[sc][sel] = makeCycleImagesComponent(cycles[sc][sel], data[sc], imagesBinarySliced[sc]);
+    }
     for (var i = 0; i < cycleComponents[sc].length; i++) {
         if (i === selectedCycle[sc] || selectedCycle[sc] === -1) {
             if (cycleComponents[sc][i] != null)
                 scene.add(cycleComponents[sc][i]);
+            if (killerComponents[sc][i] != null)
+                scene.add(killerComponents[sc][i]);
             if (killerComponents[sc][i] != null)
                 scene.add(killerComponents[sc][i]);
         } else {
@@ -301,6 +346,11 @@ function updateSelectedCycle() {
                 scene.remove(cycleComponents[sc][i]);
             if (killerComponents[sc][i] != null)
                 scene.remove(killerComponents[sc][i]);
+        }
+        if (i === selectedCycle[sc] && showCycleImages) {
+            scene.add(cycleImageComponents[sc][i]);
+        } else {
+            scene.remove(cycleImageComponents[sc][i]);
         }
     }
 }
@@ -342,8 +392,14 @@ function initScene(sc) {
     imageSize[sc] = properties[sc].imageSize;
 
     // Images
-    loadbytearray(dataFolder + 'images.bin', function (data) {
-        imagesBinary[sc] = data;
+    loadbytearray(dataFolder + 'images.bin', function (binary) {
+        imagesBinary[sc] = binary;
+        imagesBinarySliced[sc] = [];
+        for (var i = 0; i < data[sc].length; i++) {
+            var len = imageSize[sc][0] * imageSize[sc][1] * imageSize[sc][2];
+            var map = binary.slice(i * len, (i + 1) * len);
+            imagesBinarySliced[sc].push(map);
+        }
     });
     labels[sc] = loadarray(dataFolder + 'labels.txt', parseInt);
 
@@ -365,8 +421,10 @@ function initScene(sc) {
 
     // Cycles
     var colors = [0xff0000, 0x00ff00, 0xffff00, 0xff00ff];
+    cycles[sc] = [];
     cycleComponents[sc] = [];
     killerComponents[sc] = [];
+    cycleImageComponents[sc] = [];
     selectedCycle[sc] = -1;
     for (i = 0; i < 4; i++) {
         var cycle = loadarray(dataFolder + 'cycle_' + i.toString() + '.txt', parseInt);
@@ -377,6 +435,7 @@ function initScene(sc) {
         } else {
             cycleComponents[sc].push(null);
         }
+        cycles[sc].push(cycle);
         var killer = loadarray(dataFolder + 'killer_' + i.toString() + '.txt', parseInt);
         if (killer != null) {
             var killerComponent = makeKillerComponent(killer, colors[i], data[sc]);
@@ -385,6 +444,7 @@ function initScene(sc) {
         } else {
             killerComponents[sc].push(null);
         }
+        cycleImageComponents[sc].push(null);
     }
 
     // Selected point
@@ -402,12 +462,14 @@ function updateInfo() {
     var infoString = 'Information:<br>\n' +
         '* Selected feature: <b>{0}</b><br>\n' +
         '* Selected label: <b>{1}</b><br>\n' +
-        '* Filtered: <b>{2}</b><br>';
+        '* Filtered: <b>{2}</b><br>\n' +
+        '* Showing images: <b>{3}</b><br>';
     var selectedId = selectedCycle[sc] != null && selectedCycle[sc] >= 0 ? selectedCycle[sc] + 1 : '-';
     if (selectedId !== '-') {
         selectedId = '#' + selectedId;
     }
     var labelId = sc < 10 ? sc : 'all';
     var showFiltered = showFilteredPoints[sc] ? 'yes' : 'no';
-    document.getElementById('info').innerHTML = infoString.format(selectedId, labelId, showFiltered);
+    var showingImages = showCycleImages ? 'yes' : 'no';
+    document.getElementById('info').innerHTML = infoString.format(selectedId, labelId, showFiltered, showingImages);
 }
