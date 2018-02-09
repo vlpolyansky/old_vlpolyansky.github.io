@@ -246,9 +246,9 @@ function onDocumentKeyDown(event) {
             '            &lt;Backspace&gt;: show all labels<br><br>\n' +
             '            &lt;NUM_1&gt;-&lt;NUM_9&gt;: select a cycle<br>\n' +
             '            &lt;NUM_0&gt;: show all cycles<br><br>\n' +
-            '            &lt;C&gt;: show/side <u>c</u>ycles<br>\n' +
-            '            &lt;K&gt;: show/side <u>k</u>illing simplices<br>\n' +
-            '            &lt;I&gt;: show/side <u>i</u>mages on a selected cycle<br><br>\n' +
+            '            &lt;C&gt;: show/hide <u>c</u>ycles<br>\n' +
+            '            &lt;K&gt;: show/hide <u>k</u>illing simplices<br>\n' +
+            '            &lt;I&gt;: show/hide <u>i</u>mages on a selected cycle<br><br>\n' +
             '            &lt;D&gt;: switch between source images and <u>d</u>ecoded images<br>' +
             '            &lt;F&gt;: switch between all points and <u>f</u>iltered points used for analysis<br>':
 
