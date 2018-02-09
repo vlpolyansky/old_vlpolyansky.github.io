@@ -1,16 +1,16 @@
 // Setup
 
 String.prototype.format = function() {
-    var args = arguments;
+    let args = arguments;
     return this.replace(/{(\d+)}/g, function(match, number) {
-        return typeof args[number] != 'undefined'
+        return typeof args[number] !== 'undefined'
             ? args[number]
             : match
             ;
     });
 };
 
-var dataFolders = [
+const dataFolders = [
     'data/label0/',
     'data/label1/',
     'data/label2/',
@@ -41,8 +41,9 @@ camera.position.z = 5;
 var properties = {};
 var imageSize = {};
 
-var imagesBinary = {};
 var imagesBinarySliced = {};
+var imagesDecodedSliced = {};
+var showSourceImages = true;
 var labels = {};
 
 
@@ -130,7 +131,6 @@ function makeCycleImagesComponent(cycle, data, imagesBinarySliced) {
         for (i = 0; i < cycle.length; i++) {
             var idx = cycle[i];
 
-            var len = imageSize[sc][0] * imageSize[sc][1] * imageSize[sc][2];
             var map = imagesBinarySliced[idx];
             var texture = new THREE.DataTexture(map, imageSize[sc][0], imageSize[sc][1],
                 imageSize[sc][2] === 1 ? THREE.LuminanceFormat : THREE.RGBFormat);
@@ -186,6 +186,7 @@ var colors = [0xff0000, 0x00ff00, 0xffff00, 0xff00ff];
 var cycleComponents = {};
 var cycles = {};
 var cycleImageComponents = {};
+var cycleDecodedComponents = {};
 var showCycles = true;
 var showCycleImages = false;
 var killerComponents = {};
@@ -209,6 +210,8 @@ function setVisible(object, vis) {
         scene.remove(object);
     }
 }
+
+var showControls = true;
 document.addEventListener("keydown", onDocumentKeyDown, false);
 function onDocumentKeyDown(event) {
     var new_sc = undefined;
@@ -234,6 +237,27 @@ function onDocumentKeyDown(event) {
     } else if (keyCode === 67) { // C
         showCycles = !showCycles;
         updateSelectedCycle();
+    } else if (keyCode === 68) { // D
+        showSourceImages = !showSourceImages;
+        updatePicked(true);
+        updateSelectedCycle();
+    } else if (keyCode === 72) { // H
+        showControls = !showControls;
+        document.getElementById('controls').innerHTML = showControls ?
+            '            Controls: <br>\n' +
+            '            &lt;H&gt;: show/hide controls<br><br>\n' +
+            '            &lt;0&gt;-&lt;9&gt;: select a label<br>\n' +
+            '            &lt;Backspace&gt;: show all labels<br><br>\n' +
+            '            &lt;NUM_1&gt;-&lt;NUM_9&gt;: select a cycle<br>\n' +
+            '            &lt;NUM_0&gt;: show all cycles<br><br>\n' +
+            '            &lt;C&gt;: show/side <u>c</u>ycles<br>\n' +
+            '            &lt;K&gt;: show/side <u>k</u>illing simplices<br>\n' +
+            '            &lt;I&gt;: show/side <u>i</u>mages on a selected cycle<br><br>\n' +
+            '            &lt;D&gt;: switch between source images and <u>d</u>ecoded images<br>' +
+            '            &lt;F&gt;: switch between all points and <u>f</u>iltered points used for analysis<br>':
+
+            '            Controls: <br>\n' +
+            '            &lt;H&gt;: show/hide controls';
     } else if (keyCode === 73) { // I
         showCycleImages = !showCycleImages;
         updateSelectedCycle();
@@ -269,10 +293,10 @@ function onMouseMove(event) {
     mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
     mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
 }
-function onMouseDown(event) {
+function onMouseDown() {
     disallowSprites();
 }
-function onMouseUp(event) {
+function onMouseUp() {
     allowSprites();
 }
 window.addEventListener('mousemove', onMouseMove, false);
@@ -283,43 +307,7 @@ window.addEventListener('mouseup', onMouseUp, false);
 var animate = function () {
     requestAnimationFrame( animate );
 
-    // update the picking ray with the camera and mouse position
-    raycaster.setFromCamera( mouse, camera );
-
-    // calculate objects intersecting the picking ray
-    var component = !showFilteredPoints ? pointsComponent[sc] : filteredPointsComponent[sc];
-    var intersects = raycaster.intersectObject(component);
-    if (intersects.length > 0) {
-        var idx = intersects[0].index;
-        if (showFilteredPoints) {
-            idx = dataFiltered[sc][idx][0];
-        }
-        if (selectedIndex[sc] !== idx) {
-            selectedIndex[sc] = idx;
-            var point = pointsComponent[sc].geometry.vertices[idx];
-            selectedPointComponent[sc].geometry.vertices = [point];
-            selectedPointComponent[sc].geometry.verticesNeedUpdate = true;
-            scene.add(selectedPointComponent[sc]);
-
-            var pos = getScreenXY(point);
-
-            if (spritesAllowed && imagesBinary[sc] != null) {
-                var map = imagesBinarySliced[sc][idx];
-                var texture = new THREE.DataTexture(map, imageSize[sc][0], imageSize[sc][1],
-                    imageSize[sc][2] === 1 ? THREE.LuminanceFormat : THREE.RGBFormat);
-                texture.flipY = true;
-                texture.needsUpdate = true;
-                selectedImageSprite[sc].material.map = texture;
-                selectedImageSprite[sc].material.map.needsUpdate = true;
-                selectedImageSprite[sc].position.set(pos.x, pos.y, pos.z);
-                scene.add(selectedImageSprite[sc]);
-            }
-        }
-    } else {
-        selectedIndex[sc] = -1;
-        scene.remove(selectedPointComponent[sc]);
-        scene.remove(selectedImageSprite[sc]);
-    }
+    updatePicked();
 
     renderer.render( scene, camera );
 };
@@ -328,9 +316,15 @@ animate();
 // Functions
 function updateSelectedCycle() {
     var sel = selectedCycle[sc];
-    if (imagesBinary[sc] != null && sel !== -1 && cycleComponents[sc][sel] != null
-            && cycleImageComponents[sc][sel] == null) {
+    if (imagesBinarySliced[sc] != null && sel !== -1 && cycleComponents[sc][sel] != null
+        && cycleImageComponents[sc][sel] == null) {
+        console.log('HERE1');
         cycleImageComponents[sc][sel] = makeCycleImagesComponent(cycles[sc][sel], data[sc], imagesBinarySliced[sc]);
+    }
+    if (imagesDecodedSliced[sc] != null && sel !== -1 && cycleComponents[sc][sel] != null
+        && cycleDecodedComponents[sc][sel] == null) {
+        console.log('HERE2');
+        cycleDecodedComponents[sc][sel] = makeCycleImagesComponent(cycles[sc][sel], data[sc], imagesDecodedSliced[sc]);
     }
     for (var i = 0; i < cycleComponents[sc].length; i++) {
         if (showCycles && (i === selectedCycle[sc] || selectedCycle[sc] === -1)) {
@@ -349,9 +343,16 @@ function updateSelectedCycle() {
                 scene.remove(killerComponents[sc][i]);
         }
         if (showCycles && i === selectedCycle[sc] && showCycleImages) {
-            scene.add(cycleImageComponents[sc][i]);
+            if (showSourceImages) {
+                scene.add(cycleImageComponents[sc][i]);
+                scene.remove(cycleDecodedComponents[sc][i]);
+            } else {
+                scene.add(cycleDecodedComponents[sc][i]);
+                scene.remove(cycleImageComponents[sc][i]);
+            }
         } else {
             scene.remove(cycleImageComponents[sc][i]);
+            scene.remove(cycleDecodedComponents[sc][i]);
         }
     }
 }
@@ -394,12 +395,19 @@ function initScene(sc) {
 
     // Images
     loadbytearray(dataFolder + 'images.bin', function (binary) {
-        imagesBinary[sc] = binary;
         imagesBinarySliced[sc] = [];
         for (var i = 0; i < data[sc].length; i++) {
             var len = imageSize[sc][0] * imageSize[sc][1] * imageSize[sc][2];
             var map = binary.slice(i * len, (i + 1) * len);
             imagesBinarySliced[sc].push(map);
+        }
+    });
+    loadbytearray(dataFolder + 'images_decoded.bin', function (binary) {
+        imagesDecodedSliced[sc] = [];
+        for (var i = 0; i < data[sc].length; i++) {
+            var len = imageSize[sc][0] * imageSize[sc][1] * imageSize[sc][2];
+            var map = binary.slice(i * len, (i + 1) * len);
+            imagesDecodedSliced[sc].push(map);
         }
     });
     labels[sc] = loadarray(dataFolder + 'labels.txt', parseInt);
@@ -425,6 +433,7 @@ function initScene(sc) {
     cycleComponents[sc] = [];
     killerComponents[sc] = [];
     cycleImageComponents[sc] = [];
+    cycleDecodedComponents[sc] = [];
     selectedCycle[sc] = -1;
     for (i = 0; i < 4; i++) {
         var cycle = loadarray(dataFolder + 'cycle_' + i.toString() + '.txt', parseInt);
@@ -470,7 +479,7 @@ function updateInfo() {
         'Cycles: <b>{3}</b> | ' +
         'Cycle images: <b>{4}</b> | ' +
         'Killing simplices: <b>{5}</b><br>' +
-        'Filtered: <b>{2}</b><br>\n' +
+        'Filtered: <b>{2}</b> | <b>{6}</b> images<br>\n' +
     '';
     var selectedId = selectedCycle[sc] != null && selectedCycle[sc] >= 0 ? selectedCycle[sc] + 1 : '-';
     if (selectedId !== '-') {
@@ -483,11 +492,54 @@ function updateInfo() {
     var showingImages = showCycleImages ? yes : no;
     var showCyclesText = showCycles ? yes : no;
     var showKillersText = showKillerSimplices ? yes : no;
+    var showSourceImagesText = showSourceImages ? 'Source' : 'Decoded';
     document.getElementById('info').innerHTML = infoString.format(labelId, selectedId, showFiltered, showCyclesText,
-        showingImages, showKillersText);
+        showingImages, showKillersText, showSourceImagesText);
+}
+
+function updatePicked(force = false) {
+    // update the picking ray with the camera and mouse position
+    raycaster.setFromCamera( mouse, camera );
+
+    // calculate objects intersecting the picking ray
+    var component = !showFilteredPoints ? pointsComponent[sc] : filteredPointsComponent[sc];
+    var intersects = raycaster.intersectObject(component);
+    if (intersects.length > 0) {
+        var idx = intersects[0].index;
+        if (showFilteredPoints) {
+            idx = dataFiltered[sc][idx][0];
+        }
+        if (selectedIndex[sc] !== idx || force) {
+            selectedIndex[sc] = idx;
+            var point = pointsComponent[sc].geometry.vertices[idx];
+            selectedPointComponent[sc].geometry.vertices = [point];
+            selectedPointComponent[sc].geometry.verticesNeedUpdate = true;
+            scene.add(selectedPointComponent[sc]);
+
+            var pos = getScreenXY(point);
+
+            var sliced = showSourceImages ? imagesBinarySliced : imagesDecodedSliced;
+            if (spritesAllowed && sliced[sc] != null) {
+                var map = sliced[sc][idx];
+                var texture = new THREE.DataTexture(map, imageSize[sc][0], imageSize[sc][1],
+                    imageSize[sc][2] === 1 ? THREE.LuminanceFormat : THREE.RGBFormat);
+                texture.flipY = true;
+                texture.needsUpdate = true;
+                selectedImageSprite[sc].material.map = texture;
+                selectedImageSprite[sc].material.map.needsUpdate = true;
+                selectedImageSprite[sc].position.set(pos.x, pos.y, pos.z);
+                scene.add(selectedImageSprite[sc]);
+            }
+        }
+    } else {
+        selectedIndex[sc] = -1;
+        scene.remove(selectedPointComponent[sc]);
+        scene.remove(selectedImageSprite[sc]);
+    }
 }
 
 function updateScene() {
+    updatePicked();
     updateSelectedCycle();
     updateFiltered();
     updateInfo();
