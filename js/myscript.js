@@ -1,5 +1,3 @@
-// Setup
-
 String.prototype.format = function() {
     let args = arguments;
     return this.replace(/{(\d+)}/g, function(match, number) {
@@ -23,74 +21,73 @@ const dataFolders = [
     'data/label9/',
     'data/labelall/'
 ];
-var sc = 10;
-var i = undefined;
+let sc = 10;
 
 scenes = {};
 
-var scene = undefined;
-var camera = new THREE.PerspectiveCamera( 75, window.innerWidth/window.innerHeight, 0.1, 1000 );
-var controls = new THREE.OrbitControls(camera);
+let scene = undefined;
+let camera = new THREE.PerspectiveCamera( 75, window.innerWidth/window.innerHeight, 0.1, 1000 );
+let controls = new THREE.OrbitControls(camera);
 
-var renderer = new THREE.WebGLRenderer();
+let renderer = new THREE.WebGLRenderer();
 renderer.setSize( window.innerWidth, window.innerHeight );
 document.body.appendChild( renderer.domElement );
 
 camera.position.z = 5;
 
-var properties = {};
-var imageSize = {};
+let properties = {};
+let imageSize = {};
 
-var imagesBinarySliced = {};
-var imagesDecodedSliced = {};
-var showSourceImages = true;
-var labels = {};
+let imagesBinarySliced = {};
+let imagesDecodedSliced = {};
+let showSourceImages = true;
+let labels = {};
 
 
 // Points
-var data = {};
-var pointsComponent = {};
+let data = {};
+let pointsComponent = {};
 
-var labelColors = [];
-for (i = 0; i < 10; i++) {
-    var c = rainbow(10, i);
+let labelColors = [];
+for (let i = 0; i < 10; i++) {
+    let c = rainbow(10, i);
     c = c | 0x3f3f3f;
     labelColors.push(new THREE.Color(c));
 }
 
 function makePointsComponent(data, labels) {
-    var geometry = new THREE.Geometry();
-    for (i = 0; i < data.length; i++) {
+    let geometry = new THREE.Geometry();
+    for (let i = 0; i < data.length; i++) {
         geometry.vertices.push(new THREE.Vector3(data[i][0], data[i][1], data[i][2]));
         geometry.colors.push(labelColors[labels[i][0]]);
     }
-    var material = new THREE.PointsMaterial({size: 1, vertexColors: THREE.VertexColors, sizeAttenuation: false});
+    let material = new THREE.PointsMaterial({size: 1, vertexColors: THREE.VertexColors, sizeAttenuation: false});
     return new THREE.Points(geometry, material);
 }
 
 
 // Filtered Points
 function makeFilteredPointsComponent(dataFiltered, data, pointsComponent) {
-    var geometry = new THREE.Geometry();
-    for (var i = 0; i < dataFiltered.length; i++) {
+    let geometry = new THREE.Geometry();
+    for (let i = 0; i < dataFiltered.length; i++) {
         geometry.vertices.push(new THREE.Vector3(data[dataFiltered[i]][0], data[dataFiltered[i]][1], data[dataFiltered[i]][2]));
         geometry.colors.push(pointsComponent.geometry.colors[dataFiltered[i]]);
     }
-    var material = new THREE.PointsMaterial({size: 1, vertexColors: THREE.VertexColors, sizeAttenuation: false});
+    let material = new THREE.PointsMaterial({size: 1, vertexColors: THREE.VertexColors, sizeAttenuation: false});
     return new THREE.Points(geometry, material);
 }
-var dataFiltered = {};
-var filteredPointsComponent = {};
-var showFilteredPoints = false;
+let dataFiltered = {};
+let filteredPointsComponent = {};
+let showFilteredPoints = false;
 
 
 // Cycles
 function makeCycleComponent(cycle, color, data) {
-    var geometry, i, material;
+    let geometry, material;
     if (cycle[0].length === 1) {
         // H1
         geometry = new THREE.Geometry();
-        for (i = 0; i < cycle.length; i++) {
+        for (let i = 0; i < cycle.length; i++) {
             geometry.vertices.push(new THREE.Vector3(data[cycle[i]][0], data[cycle[i]][1], data[cycle[i]][2]));
         }
         material = new THREE.LineBasicMaterial({color: color, linewidth: 3, opacity: 0.8});
@@ -99,22 +96,22 @@ function makeCycleComponent(cycle, color, data) {
     } else if (cycle[0].length === 3) {
         // H2
         geometry = new THREE.Geometry();
-        for (i = 0; i < data.length; i++) {
+        for (let i = 0; i < data.length; i++) {
             geometry.vertices.push(new THREE.Vector3(data[i][0], data[i][1], data[i][2]));
         }
-        for (i = 0; i < cycle.length; i++) {
+        for (let i = 0; i < cycle.length; i++) {
             geometry.faces.push(new THREE.Face3(cycle[i][0], cycle[i][1], cycle[i][2]));
         }
         material = new THREE.MeshBasicMaterial({color: color & 0x3f3f3f, opacity: 0.3});
         material.transparent = true;
         material.depthWrite = false;
         material.side = THREE.DoubleSide;
-        var mesh = new THREE.Mesh(geometry, material);
+        let mesh = new THREE.Mesh(geometry, material);
 
-        var wireframeGeometry = new THREE.EdgesGeometry(mesh.geometry);
-        var wireframeMaterial = new THREE.LineBasicMaterial({color: color, linewidth: 2, opacity: 0.6});
+        let wireframeGeometry = new THREE.EdgesGeometry(mesh.geometry);
+        let wireframeMaterial = new THREE.LineBasicMaterial({color: color, linewidth: 2, opacity: 0.6});
         wireframeMaterial.transparent = true;
-        var wireframe = new THREE.LineSegments(wireframeGeometry, wireframeMaterial);
+        let wireframe = new THREE.LineSegments(wireframeGeometry, wireframeMaterial);
         mesh.add(wireframe);
 
         return mesh;
@@ -122,25 +119,24 @@ function makeCycleComponent(cycle, color, data) {
 
 }
 
-var cycleScale = 0.1;
+let cycleScale = 0.1;
 function makeCycleImagesComponent(cycle, data, imagesBinarySliced) {
-    var group = new THREE.Group();
-    var i;
+    let group = new THREE.Group();
     if (cycle[0].length === 1) {
         // H1
-        for (i = 0; i < cycle.length; i++) {
-            var idx = cycle[i];
+        for (let i = 0; i < cycle.length; i++) {
+            let idx = cycle[i];
 
-            var map = imagesBinarySliced[idx];
-            var texture = new THREE.DataTexture(map, imageSize[sc][0], imageSize[sc][1],
+            let map = imagesBinarySliced[idx];
+            let texture = new THREE.DataTexture(map, imageSize[sc][0], imageSize[sc][1],
                 imageSize[sc][2] === 1 ? THREE.LuminanceFormat : THREE.RGBFormat);
             texture.flipY = true;
             texture.needsUpdate = true;
 
-            var spriteMaterial = new THREE.SpriteMaterial({map: texture, color: 0xffffff});
+            let spriteMaterial = new THREE.SpriteMaterial({map: texture, color: 0xffffff});
 
-            var sprite = new THREE.Sprite(spriteMaterial);
-            var scale = cycleScale;
+            let sprite = new THREE.Sprite(spriteMaterial);
+            let scale = cycleScale;
 
             sprite.position.set(data[idx][0], data[idx][1], data[idx][2]);
             sprite.scale.set(scale, scale, scale);
@@ -154,9 +150,9 @@ function makeCycleImagesComponent(cycle, data, imagesBinarySliced) {
 }
 
 function makeKillerComponent(killer, color, data) {
-    var geometry = new THREE.Geometry();
-    var material = undefined;
-    for (var i = 0; i < killer.length; i++) {
+    let geometry = new THREE.Geometry();
+    let material = undefined;
+    for (let i = 0; i < killer.length; i++) {
         geometry.vertices.push(new THREE.Vector3(data[killer[i]][0], data[killer[i]][1], data[killer[i]][2]));
     }
     geometry.faces.push(new THREE.Face3(0, 1, 2));
@@ -171,36 +167,36 @@ function makeKillerComponent(killer, color, data) {
     }
     material.transparent = true;
     material.side = THREE.DoubleSide;
-    var mesh = new THREE.Mesh(geometry, material);
+    let mesh = new THREE.Mesh(geometry, material);
 
-    var wireframeGeometry = new THREE.EdgesGeometry(mesh.geometry);
-    var wireframeMaterial = new THREE.LineBasicMaterial({color: color, linewidth: 2, opacity: 0.8});
+    let wireframeGeometry = new THREE.EdgesGeometry(mesh.geometry);
+    let wireframeMaterial = new THREE.LineBasicMaterial({color: color, linewidth: 2, opacity: 0.8});
     wireframeMaterial.transparent = true;
-    var wireframe = new THREE.LineSegments(wireframeGeometry, wireframeMaterial);
+    let wireframe = new THREE.LineSegments(wireframeGeometry, wireframeMaterial);
     mesh.add(wireframe);
 
     return mesh;
 
 }
-var colors = [0xff0000, 0x00ff00, 0xffff00, 0xff00ff];
-var cycleComponents = {};
-var cycles = {};
-var cycleImageComponents = {};
-var cycleDecodedComponents = {};
-var showCycles = true;
-var showCycleImages = false;
-var killerComponents = {};
-var showKillerSimplices = true;
-var selectedCycle = {};
+let colors = [0xff0000, 0x00ff00, 0xffff00, 0xff00ff];
+let cycleComponents = {};
+let cycles = {};
+let cycleImageComponents = {};
+let cycleDecodedComponents = {};
+let showCycles = true;
+let showCycleImages = false;
+let killerComponents = {};
+let showKillerSimplices = true;
+let selectedCycle = {};
 
 // Selected point
 function makeSelectedPointComponent() {
-    var geometry = new THREE.Geometry();
-    var material = new THREE.PointsMaterial({size: 8, color: 0xff0000, sizeAttenuation: false});
+    let geometry = new THREE.Geometry();
+    let material = new THREE.PointsMaterial({size: 8, color: 0xff0000, sizeAttenuation: false});
     return new THREE.Points(geometry, material);
 }
-var selectedIndex = {};
-var selectedPointComponent = {};
+let selectedIndex = {};
+let selectedPointComponent = {};
 
 // Controlling
 function setVisible(object, vis) {
@@ -211,11 +207,11 @@ function setVisible(object, vis) {
     }
 }
 
-var showControls = true;
+let showControls = true;
 document.addEventListener("keydown", onDocumentKeyDown, false);
 function onDocumentKeyDown(event) {
-    var new_sc = undefined;
-    var keyCode = event.which;
+    let new_sc = undefined;
+    let keyCode = event.which;
     if (keyCode === 70) { // F
         showFilteredPoints = !showFilteredPoints;
         updateFiltered();
@@ -270,24 +266,24 @@ function onDocumentKeyDown(event) {
 }
 
 // Selected image
-var spriteScale = 0.025;
-var spritesAllowed = true;
+let spriteScale = 0.025;
+let spritesAllowed = true;
 function makeSelectedImageSprite() {
-    var spriteMaterial = new THREE.SpriteMaterial({color: 0xffffff});
-    var sprite = new THREE.Sprite(spriteMaterial);
-    var scale = spriteScale;
+    let spriteMaterial = new THREE.SpriteMaterial({color: 0xffffff});
+    let sprite = new THREE.Sprite(spriteMaterial);
+    let scale = spriteScale;
     sprite.scale.set(scale, scale, scale);
     return sprite;
 }
-var selectedImageSprite = {};
+let selectedImageSprite = {};
 
 scene = initScene(sc);
 updateInfo();
 
 // Rendering & ray casting
-var raycaster = new THREE.Raycaster();
+let raycaster = new THREE.Raycaster();
 raycaster.params.Points.threshold = 0.01;
-var mouse = new THREE.Vector2();
+let mouse = new THREE.Vector2();
 
 function onMouseMove(event) {
     mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
@@ -304,7 +300,7 @@ window.addEventListener('mousedown', onMouseDown, false);
 // window.addEventListener( 'wheel', disallowSprites, false );
 window.addEventListener('mouseup', onMouseUp, false);
 
-var animate = function () {
+let animate = function () {
     requestAnimationFrame( animate );
 
     updatePicked();
@@ -315,18 +311,16 @@ animate();
 
 // Functions
 function updateSelectedCycle() {
-    var sel = selectedCycle[sc];
+    let sel = selectedCycle[sc];
     if (imagesBinarySliced[sc] != null && sel !== -1 && cycleComponents[sc][sel] != null
         && cycleImageComponents[sc][sel] == null) {
-        console.log('HERE1');
         cycleImageComponents[sc][sel] = makeCycleImagesComponent(cycles[sc][sel], data[sc], imagesBinarySliced[sc]);
     }
     if (imagesDecodedSliced[sc] != null && sel !== -1 && cycleComponents[sc][sel] != null
         && cycleDecodedComponents[sc][sel] == null) {
-        console.log('HERE2');
         cycleDecodedComponents[sc][sel] = makeCycleImagesComponent(cycles[sc][sel], data[sc], imagesDecodedSliced[sc]);
     }
-    for (var i = 0; i < cycleComponents[sc].length; i++) {
+    for (let i = 0; i < cycleComponents[sc].length; i++) {
         if (showCycles && (i === selectedCycle[sc] || selectedCycle[sc] === -1)) {
             if (cycleComponents[sc][i] != null)
                 scene.add(cycleComponents[sc][i]);
@@ -363,7 +357,7 @@ function log(msg) {
 
 function getScreenXY(obj) {
 
-    var vector = obj.clone();
+    let vector = obj.clone();
     vector.project(camera);
     vector.x += spriteScale * 1.5;
     vector.y += spriteScale * 2;
@@ -385,9 +379,9 @@ function allowSprites() {
 }
 
 function initScene(sc) {
-    var dataFolder = dataFolders[sc];
+    let dataFolder = dataFolders[sc];
 
-    var scene = new THREE.Scene();
+    let scene = new THREE.Scene();
     scenes[sc] = scene;
 
     properties[sc] = JSON.parse(loadtext(dataFolder + 'properties.json'));
@@ -396,17 +390,17 @@ function initScene(sc) {
     // Images
     loadbytearray(dataFolder + 'images.bin', function (binary) {
         imagesBinarySliced[sc] = [];
-        for (var i = 0; i < data[sc].length; i++) {
-            var len = imageSize[sc][0] * imageSize[sc][1] * imageSize[sc][2];
-            var map = binary.slice(i * len, (i + 1) * len);
+        for (let i = 0; i < data[sc].length; i++) {
+            let len = imageSize[sc][0] * imageSize[sc][1] * imageSize[sc][2];
+            let map = binary.slice(i * len, (i + 1) * len);
             imagesBinarySliced[sc].push(map);
         }
     });
     loadbytearray(dataFolder + 'images_decoded.bin', function (binary) {
         imagesDecodedSliced[sc] = [];
-        for (var i = 0; i < data[sc].length; i++) {
-            var len = imageSize[sc][0] * imageSize[sc][1] * imageSize[sc][2];
-            var map = binary.slice(i * len, (i + 1) * len);
+        for (let i = 0; i < data[sc].length; i++) {
+            let len = imageSize[sc][0] * imageSize[sc][1] * imageSize[sc][2];
+            let map = binary.slice(i * len, (i + 1) * len);
             imagesDecodedSliced[sc].push(map);
         }
     });
@@ -421,33 +415,33 @@ function initScene(sc) {
     dataFiltered[sc] = loadarray(dataFolder + 'filtered_points.txt', parseInt);
     if (dataFiltered[sc] == null) {
         dataFiltered[sc] = [];
-        for (i = 0; i < data[sc].length; i++) {
+        for (let i = 0; i < data[sc].length; i++) {
             dataFiltered[sc].push(i);
         }
     }
     filteredPointsComponent[sc] = makeFilteredPointsComponent(dataFiltered[sc], data[sc], pointsComponent[sc]);
 
     // Cycles
-    var colors = [0xff0000, 0x00ff00, 0xffff00, 0xff00ff];
+    let colors = [0xff0000, 0x00ff00, 0xffff00, 0xff00ff];
     cycles[sc] = [];
     cycleComponents[sc] = [];
     killerComponents[sc] = [];
     cycleImageComponents[sc] = [];
     cycleDecodedComponents[sc] = [];
     selectedCycle[sc] = -1;
-    for (i = 0; i < 4; i++) {
-        var cycle = loadarray(dataFolder + 'cycle_' + i.toString() + '.txt', parseInt);
+    for (let i = 0; i < 4; i++) {
+        let cycle = loadarray(dataFolder + 'cycle_' + i.toString() + '.txt', parseInt);
         if (cycle != null) {
-            var cycleComponent = makeCycleComponent(cycle, colors[i], data[sc]);
+            let cycleComponent = makeCycleComponent(cycle, colors[i], data[sc]);
             scene.add(cycleComponent);
             cycleComponents[sc].push(cycleComponent);
         } else {
             cycleComponents[sc].push(null);
         }
         cycles[sc].push(cycle);
-        var killer = loadarray(dataFolder + 'killer_' + i.toString() + '.txt', parseInt);
+        let killer = loadarray(dataFolder + 'killer_' + i.toString() + '.txt', parseInt);
         if (killer != null) {
-            var killerComponent = makeKillerComponent(killer, colors[i], data[sc]);
+            let killerComponent = makeKillerComponent(killer, colors[i], data[sc]);
             scene.add(killerComponent);
             killerComponents[sc].push(killerComponent);
         } else {
@@ -473,7 +467,7 @@ function updateFiltered() {
 }
 
 function updateInfo() {
-    var infoString =
+    let infoString =
         'Label: <b>{0}</b> | ' +
         'Cycle: <b>{1}</b><br>\n' +
         'Cycles: <b>{3}</b> | ' +
@@ -481,18 +475,18 @@ function updateInfo() {
         'Killing simplices: <b>{5}</b><br>' +
         'Filtered: <b>{2}</b> | <b>{6}</b> images<br>\n' +
     '';
-    var selectedId = selectedCycle[sc] != null && selectedCycle[sc] >= 0 ? selectedCycle[sc] + 1 : '-';
+    let selectedId = selectedCycle[sc] != null && selectedCycle[sc] >= 0 ? selectedCycle[sc] + 1 : '-';
     if (selectedId !== '-') {
         selectedId = '#' + selectedId;
     }
-    var labelId = sc < 10 ? sc : 'all';
-    var yes = '&#10004';
-    var no = '&#10060';
-    var showFiltered = showFilteredPoints ? yes : no;
-    var showingImages = showCycleImages ? yes : no;
-    var showCyclesText = showCycles ? yes : no;
-    var showKillersText = showKillerSimplices ? yes : no;
-    var showSourceImagesText = showSourceImages ? 'Source' : 'Decoded';
+    let labelId = sc < 10 ? sc : 'all';
+    let yes = '&#10004';
+    let no = '&#10060';
+    let showFiltered = showFilteredPoints ? yes : no;
+    let showingImages = showCycleImages ? yes : no;
+    let showCyclesText = showCycles ? yes : no;
+    let showKillersText = showKillerSimplices ? yes : no;
+    let showSourceImagesText = showSourceImages ? 'Source' : 'Decoded';
     document.getElementById('info').innerHTML = infoString.format(labelId, selectedId, showFiltered, showCyclesText,
         showingImages, showKillersText, showSourceImagesText);
 }
@@ -502,26 +496,26 @@ function updatePicked(force = false) {
     raycaster.setFromCamera( mouse, camera );
 
     // calculate objects intersecting the picking ray
-    var component = !showFilteredPoints ? pointsComponent[sc] : filteredPointsComponent[sc];
-    var intersects = raycaster.intersectObject(component);
+    let component = !showFilteredPoints ? pointsComponent[sc] : filteredPointsComponent[sc];
+    let intersects = raycaster.intersectObject(component);
     if (intersects.length > 0) {
-        var idx = intersects[0].index;
+        let idx = intersects[0].index;
         if (showFilteredPoints) {
             idx = dataFiltered[sc][idx][0];
         }
         if (selectedIndex[sc] !== idx || force) {
             selectedIndex[sc] = idx;
-            var point = pointsComponent[sc].geometry.vertices[idx];
+            let point = pointsComponent[sc].geometry.vertices[idx];
             selectedPointComponent[sc].geometry.vertices = [point];
             selectedPointComponent[sc].geometry.verticesNeedUpdate = true;
             scene.add(selectedPointComponent[sc]);
 
-            var pos = getScreenXY(point);
+            let pos = getScreenXY(point);
 
-            var sliced = showSourceImages ? imagesBinarySliced : imagesDecodedSliced;
+            let sliced = showSourceImages ? imagesBinarySliced : imagesDecodedSliced;
             if (spritesAllowed && sliced[sc] != null) {
-                var map = sliced[sc][idx];
-                var texture = new THREE.DataTexture(map, imageSize[sc][0], imageSize[sc][1],
+                let map = sliced[sc][idx];
+                let texture = new THREE.DataTexture(map, imageSize[sc][0], imageSize[sc][1],
                     imageSize[sc][2] === 1 ? THREE.LuminanceFormat : THREE.RGBFormat);
                 texture.flipY = true;
                 texture.needsUpdate = true;
