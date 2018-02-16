@@ -1,0 +1,10 @@
+{
+  "labels" : [
+    {
+      "folder": "earth_025_nolight",
+      "name": "Earth rotation",
+      "key": 48
+    }
+  ],
+  "initId": 0
+}

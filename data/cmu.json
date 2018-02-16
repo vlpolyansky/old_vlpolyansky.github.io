@@ -1,0 +1,10 @@
+{
+  "labels" : [
+    {
+      "folder": "cmu_walk_centered",
+      "name": "CMU walk (centered)",
+      "key": 49
+    }
+  ],
+  "initId": 0
+}

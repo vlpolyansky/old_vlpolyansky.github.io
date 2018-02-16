@@ -8,20 +8,14 @@ String.prototype.format = function() {
     });
 };
 
-const dataFolders = [
-    'data/label0/',
-    'data/label1/',
-    'data/label2/',
-    'data/label3/',
-    'data/label4/',
-    'data/label5/',
-    'data/label6/',
-    'data/label7/',
-    'data/label8/',
-    'data/label9/',
-    'data/labelall/'
-];
-let sc = 10;
+const description = JSON.parse(loadtext(document.currentScript.getAttribute('data-json')));
+let dataFolders = [];
+for (let i = 0; i < description.labels.length; i++) {
+    dataFolders.push('data/' + description.labels[i].folder + '/');
+}
+console.log(dataFolders);
+
+let sc = description.initId;
 
 scenes = {};
 
@@ -212,24 +206,25 @@ document.addEventListener("keydown", onDocumentKeyDown, false);
 function onDocumentKeyDown(event) {
     let new_sc = undefined;
     let keyCode = event.which;
+    // Changing labels
+    for (let i = 0; i < description.labels.length; i++) {
+        if (keyCode === description.labels[i].key) {
+            new_sc = i;
+            if (scenes[new_sc] == null) {
+                initScene(new_sc);
+            }
+            sc = new_sc;
+            scene = scenes[sc];
+            updateScene();
+            break;
+        }
+    }
     if (keyCode === 70) { // F
         showFilteredPoints = !showFilteredPoints;
         updateFiltered();
     } else if (keyCode >= 96 && keyCode <= 105) { // NUM_0-NUM_9
         selectedCycle[sc] = keyCode - 96 - 1;
         updateSelectedCycle();
-    } else if (keyCode >= 48 && keyCode <= 57 || keyCode === 8) { // 0-9 or backspace
-        if (keyCode === 8) {
-            new_sc = 10;
-        } else {
-            new_sc = keyCode - 48;
-        }
-        if (scenes[new_sc] == null) {
-            initScene(new_sc);
-        }
-        sc = new_sc;
-        scene = scenes[sc];
-        updateScene();
     } else if (keyCode === 67) { // C
         showCycles = !showCycles;
         updateSelectedCycle();
@@ -239,21 +234,7 @@ function onDocumentKeyDown(event) {
         updateSelectedCycle();
     } else if (keyCode === 72) { // H
         showControls = !showControls;
-        document.getElementById('controls').innerHTML = showControls ?
-            '            Controls: <br>\n' +
-            '            &lt;H&gt;: show/hide controls<br><br>\n' +
-            '            &lt;0&gt;-&lt;9&gt;: select a label<br>\n' +
-            '            &lt;Backspace&gt;: show all labels<br><br>\n' +
-            '            &lt;NUM_1&gt;-&lt;NUM_9&gt;: select a cycle<br>\n' +
-            '            &lt;NUM_0&gt;: show all cycles<br><br>\n' +
-            '            &lt;C&gt;: show/hide <u>c</u>ycles<br>\n' +
-            '            &lt;K&gt;: show/hide <u>k</u>illing simplices<br>\n' +
-            '            &lt;I&gt;: show/hide <u>i</u>mages on a selected cycle<br><br>\n' +
-            '            &lt;D&gt;: switch between source images and <u>d</u>ecoded images<br>' +
-            '            &lt;F&gt;: switch between all points and <u>f</u>iltered points used for analysis<br>':
-
-            '            Controls: <br>\n' +
-            '            &lt;H&gt;: show/hide controls';
+        updateControls();
     } else if (keyCode === 73) { // I
         showCycleImages = !showCycleImages;
         updateSelectedCycle();
@@ -458,6 +439,8 @@ function initScene(sc) {
     // Selected image
     selectedImageSprite[sc] = makeSelectedImageSprite();
 
+    updateControls();
+
     return scene;
 }
 
@@ -479,7 +462,7 @@ function updateInfo() {
     if (selectedId !== '-') {
         selectedId = '#' + selectedId;
     }
-    let labelId = sc < 10 ? sc : 'all';
+    let labelId = description.labels[sc].name;
     let yes = '&#10004';
     let no = '&#10060';
     let showFiltered = showFilteredPoints ? yes : no;
@@ -489,6 +472,43 @@ function updateInfo() {
     let showSourceImagesText = showSourceImages ? 'Source' : 'Decoded';
     document.getElementById('info').innerHTML = infoString.format(labelId, selectedId, showFiltered, showCyclesText,
         showingImages, showKillersText, showSourceImagesText);
+}
+
+function updateControls() {
+    if (!showControls) {
+        document.getElementById('controls').innerHTML =
+            '            Controls: <br>\n' +
+            '            &lt;H&gt;: show/hide controls';
+    } else {
+        let line =
+            '            Controls: <br>\n' +
+            '            &lt;H&gt;: show/hide controls<br><br>\n';
+        line += '[';
+        for (let i = 0; i < description.labels.length; i++) {
+            if (i > 0) {
+                line += ', ';
+            }
+            const key = description.labels[i].key;
+            if (key === 8) {
+                line += 'backspace';
+            } else {
+                line += String.fromCharCode(key);
+            }
+
+        }
+        line += ']: available label keys<br><br>';
+        line +=
+        '            &lt;NUM_1&gt;-&lt;NUM_9&gt;: select a cycle<br>\n' +
+        '            &lt;NUM_0&gt;: show all cycles<br><br>\n' +
+        '            &lt;C&gt;: show/hide <u>c</u>ycles<br>\n' +
+        '            &lt;K&gt;: show/hide <u>k</u>illing simplices<br>\n' +
+        '            &lt;I&gt;: show/hide <u>i</u>mages on a selected cycle<br><br>\n' +
+        '            &lt;D&gt;: switch between source images and <u>d</u>ecoded images<br>' +
+        '            &lt;F&gt;: switch between all points and <u>f</u>iltered points used for analysis<br><br>';
+
+        document.getElementById('controls').innerHTML = line;
+    }
+
 }
 
 function updatePicked(force = false) {
@@ -537,4 +557,5 @@ function updateScene() {
     updateSelectedCycle();
     updateFiltered();
     updateInfo();
+    updateControls();
 }

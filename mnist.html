@@ -1,0 +1,53 @@
+<html>
+	<head>
+		<title>Persistent cycles</title>
+		<style>
+			body { margin: 0; }
+			canvas { width: 100%; height: 100% }
+            #controls {
+                position: absolute;
+                top: 15px;
+                left: 15px;
+                /*width: 50%;*/
+                /*text-align: center;*/
+                /*z-index: 100;*/
+                display: block;
+                color: lightblue;
+            }
+            #info {
+                position: absolute;
+                top: 15px;
+                /*right: 15px;*/
+                font-size: 20px;
+                width: 100%;
+                text-align: center;
+                /*z-index: 100;*/
+                display: block;
+                color: lightblue;
+            }
+		</style>
+	</head>
+	<body>
+        <div id="controls">
+            Controls: <br>
+            &lt;H&gt;: show/hide controls<br><br>
+            &lt;0&gt;-&lt;9&gt;: select a label<br>
+            &lt;Backspace&gt;: show all labels<br><br>
+            &lt;NUM_1&gt;-&lt;NUM_9&gt;: select a cycle<br>
+            &lt;NUM_0&gt;: show all cycles<br><br>
+            &lt;C&gt;: show/hide <u>c</u>ycles<br>
+            &lt;K&gt;: show/hide <u>k</u>illing simplices<br>
+            &lt;I&gt;: show/hide <u>i</u>mages on a selected cycle<br><br>
+            &lt;D&gt;: switch between source images and <u>d</u>ecoded images<br>
+            &lt;F&gt;: switch between all points and <u>f</u>iltered points used for analysis<br>
+        </div>
+        <div id="info">
+            Information
+        </div>
+		<script src="js/three.js"></script>
+		<script src="js/OrbitControls.js"></script>
+		<script src="js/DragControls.js"></script>
+        <script src="js/utils.js"></script>
+        <script src="js/myscript.js" data-json="data/mnist.json"></script>
+	</body>
+</html>

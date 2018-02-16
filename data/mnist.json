@@ -1,0 +1,60 @@
+{
+  "labels" : [
+    {
+      "folder": "label0",
+      "name": "0",
+      "key": 48
+    },
+    {
+      "folder": "label1",
+      "name": "1",
+      "key": 49
+    },
+    {
+      "folder": "label2",
+      "name": "2",
+      "key": 50
+    },
+    {
+      "folder": "label3",
+      "name": "3",
+      "key": 51
+    },
+    {
+      "folder": "label4",
+      "name": "4",
+      "key": 52
+    },
+    {
+      "folder": "label5",
+      "name": "5",
+      "key": 53
+    },
+    {
+      "folder": "label6",
+      "name": "6",
+      "key": 54
+    },
+    {
+      "folder": "label7",
+      "name": "7",
+      "key": 55
+    },
+    {
+      "folder": "label8",
+      "name": "8",
+      "key": 56
+    },
+    {
+      "folder": "label9",
+      "name": "9",
+      "key": 57
+    },
+    {
+      "folder": "labelall",
+      "name": "All",
+      "key": 8
+    }
+  ],
+  "initId": 10
+}
