@@ -376,6 +376,7 @@ function initScene(sc) {
             let map = binary.slice(i * len, (i + 1) * len);
             imagesBinarySliced[sc].push(map);
         }
+        updateScene();
     });
     loadbytearray(dataFolder + 'images_decoded.bin', function (binary) {
         imagesDecodedSliced[sc] = [];
@@ -384,6 +385,7 @@ function initScene(sc) {
             let map = binary.slice(i * len, (i + 1) * len);
             imagesDecodedSliced[sc].push(map);
         }
+        updateScene();
     });
     labels[sc] = loadarray(dataFolder + 'labels.txt', parseInt);
 
