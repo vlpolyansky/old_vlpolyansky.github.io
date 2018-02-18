@@ -2,8 +2,14 @@
   "labels" : [
     {
       "folder": "sphere_4d",
-      "name": "Sphere in 4D space (S_3)",
-      "key": 48,
+      "name": "Sphere in 4D space (S_3) [1]",
+      "key": 49,
+      "noimages": true
+    },
+    {
+      "folder": "sphere_4d_2",
+      "name": "Sphere in 4D space (S_3) [2]",
+      "key": 50,
       "noimages": true
     }
   ],

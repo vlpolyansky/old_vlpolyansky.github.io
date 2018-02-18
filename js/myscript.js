@@ -577,10 +577,17 @@ function updatePicked(force = false) {
     }
 }
 
+function updatePlot() {
+    if (document.getElementById('plot') != null) {
+        document.getElementById('plot').src = dataFolders[sc] + 'plot.png';
+    }
+}
+
 function updateScene() {
     updatePicked();
     updateSelectedCycle();
     updateFiltered();
     updateInfo();
     updateControls();
+    updatePlot();
 }
