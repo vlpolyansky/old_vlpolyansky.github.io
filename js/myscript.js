@@ -241,6 +241,16 @@ function onDocumentKeyDown(event) {
     } else if (keyCode === 75) { // K
         showKillerSimplices = !showKillerSimplices;
         updateSelectedCycle();
+    } else if (keyCode === 187 || keyCode === 189) { // +/-
+        if (keyCode === 187) {
+            spriteScale *= 1.5;
+            cycleScale *= 1.5;
+        } else {
+            spriteScale /= 1.5;
+            cycleScale /= 1.5;
+        }
+        updatePicked(true);
+        updateSelectedCycle();
     }
 
     updateInfo();
@@ -319,9 +329,17 @@ function updateSelectedCycle() {
         }
         if (showCycles && i === selectedCycle[sc] && showCycleImages) {
             if (showSourceImages) {
+                cycleImageComponents[sc][i].traverse( function ( object ) {
+                    if (object instanceof THREE.Sprite)
+                        object.scale.set(cycleScale, cycleScale, cycleScale);
+                });
                 scene.add(cycleImageComponents[sc][i]);
                 scene.remove(cycleDecodedComponents[sc][i]);
             } else {
+                cycleDecodedComponents[sc][i].traverse( function ( object ) {
+                    if (object instanceof THREE.Sprite)
+                        object.scale.set(cycleScale, cycleScale, cycleScale);
+                } );
                 scene.add(cycleDecodedComponents[sc][i]);
                 scene.remove(cycleImageComponents[sc][i]);
             }
@@ -330,10 +348,6 @@ function updateSelectedCycle() {
             scene.remove(cycleDecodedComponents[sc][i]);
         }
     }
-}
-
-function log(msg) {
-    document.getElementById('info').innerText = msg;
 }
 
 function getScreenXY(obj) {
@@ -369,7 +383,10 @@ function initScene(sc) {
     imageSize[sc] = properties[sc].imageSize;
 
     // Images
-    loadbytearray(dataFolder + 'images.bin', function (binary) {
+    let path = description.labels[sc].images_bin != null ?
+        get_yadisk_link(description.labels[sc].images_bin) :
+        dataFolder + 'images.bin';
+    loadbytearray(path, function (binary) {
         imagesBinarySliced[sc] = [];
         for (let i = 0; i < data[sc].length; i++) {
             let len = imageSize[sc][0] * imageSize[sc][1] * imageSize[sc][2];
@@ -377,8 +394,11 @@ function initScene(sc) {
             imagesBinarySliced[sc].push(map);
         }
         updateScene();
-    });
-    loadbytearray(dataFolder + 'images_decoded.bin', function (binary) {
+    }, 'images.bin');
+    path = description.labels[sc].images_decoded_bin != null ?
+        get_yadisk_link(description.labels[sc].images_decoded_bin) :
+        dataFolder + 'images_decoded.bin';
+    loadbytearray(path, function (binary) {
         imagesDecodedSliced[sc] = [];
         for (let i = 0; i < data[sc].length; i++) {
             let len = imageSize[sc][0] * imageSize[sc][1] * imageSize[sc][2];
@@ -386,7 +406,7 @@ function initScene(sc) {
             imagesDecodedSliced[sc].push(map);
         }
         updateScene();
-    });
+    }, 'images_decoded.bin');
     labels[sc] = loadarray(dataFolder + 'labels.txt', parseInt);
 
     // Points
@@ -506,7 +526,8 @@ function updateControls() {
         '            &lt;K&gt;: show/hide <u>k</u>illing simplices<br>\n' +
         '            &lt;I&gt;: show/hide <u>i</u>mages on a selected cycle<br><br>\n' +
         '            &lt;D&gt;: switch between source images and <u>d</u>ecoded images<br>' +
-        '            &lt;F&gt;: switch between all points and <u>f</u>iltered points used for analysis<br><br>';
+        '            &lt;F&gt;: switch between all points and <u>f</u>iltered points used for analysis<br><br>' +
+        '&lt;+&gt/&lt;-&gt: change sprites\' scale';
 
         document.getElementById('controls').innerHTML = line;
     }
@@ -544,6 +565,7 @@ function updatePicked(force = false) {
                 selectedImageSprite[sc].material.map = texture;
                 selectedImageSprite[sc].material.map.needsUpdate = true;
                 selectedImageSprite[sc].position.set(pos.x, pos.y, pos.z);
+                selectedImageSprite[sc].scale.set(spriteScale, spriteScale, spriteScale);
                 scene.add(selectedImageSprite[sc]);
             }
         }

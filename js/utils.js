@@ -47,7 +47,10 @@ function loadtext(path) {
     return data;
 }
 
-function loadbytearray(path, callback) {
+function loadbytearray(path, callback, tag=null) {
+    if (tag != null) {
+        log('Loading "' + tag + '" ...');
+    }
     var client = new XMLHttpRequest();
     client.open('GET', path, true);
     client.responseType = 'arraybuffer';
@@ -56,6 +59,9 @@ function loadbytearray(path, callback) {
     client.onloadend = function() {
         var arrayBuffer = client.response;
         if (arrayBuffer) {
+            if (tag != null) {
+                log('"' + tag + '" loaded');
+            }
             callback(new Uint8Array(arrayBuffer));
         }
     };
@@ -92,4 +98,18 @@ function unique(arr) {
         }
     }
     return a;
+}
+
+function log(message) {
+    document.getElementById('logs').innerText += message + '\n';
+}
+
+function clear_logs() {
+    document.getElementById('logs').innerText = '';
+}
+
+function get_yadisk_link(code) {
+    let link_1 = 'https://cloud-api.yandex.net/v1/disk/public/resources/download?public_key=https://yadi.sk/d/' + code;
+    let response = JSON.parse(loadtext(link_1));
+    return response.href;
 }

@@ -1,0 +1,12 @@
+{
+  "labels" : [
+    {
+      "folder": "earth_s2_1",
+      "name": "Earth rotation x2",
+      "key": 48,
+      "images_bin": "AIW7cqkS3SWX9A",
+      "images_decoded_bin": "qAPnJtn33SWX9L"
+    }
+  ],
+  "initId": 0
+}
