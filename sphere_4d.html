@@ -1,0 +1,58 @@
+<html>
+	<head>
+		<title>Persistent cycles</title>
+		<style>
+			body { margin: 0; }
+			canvas { width: 100%; height: 100% }
+            #controls {
+                position: absolute;
+                top: 15px;
+                left: 15px;
+                /*width: 50%;*/
+                /*text-align: center;*/
+                /*z-index: 100;*/
+                display: block;
+                color: lightblue;
+            }
+            #info {
+                position: absolute;
+                top: 15px;
+                /*right: 15px;*/
+                font-size: 20px;
+                width: 100%;
+                text-align: center;
+                /*z-index: 100;*/
+                display: block;
+                color: lightblue;
+            }
+            #logs {
+                position: absolute;
+                top: 15px;
+                right: 15px;
+                font-size: 14px;
+                width: 100%;
+                text-align: right;
+                /*z-index: 100;*/
+                display: block;
+                color: gray;
+            }
+		</style>
+	</head>
+	<body>
+        <div id="controls">
+        </div>
+        <div id="info">
+        </div>
+        <div id="logs">
+        </div>
+		<script src="js/three.js"></script>
+		<script src="js/OrbitControls.js"></script>
+		<script src="js/DragControls.js"></script>
+        <script src="js/utils.js"></script>
+        <script src="js/myscript.js" data-json="data/sphere_4d.json"></script>
+		<img src="data/sphere_4d/plot.png" alt="Persistent cycles" name="plot" width="100px" height="100px"
+			 style="position: absolute; bottom: 0; right: 0"
+			 onmouseover="plot.width='500';plot.height='500';"
+			 onmouseout="plot.width='100';plot.height='100';">
+	</body>
+</html>

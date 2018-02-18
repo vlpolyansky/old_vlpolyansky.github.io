@@ -1,0 +1,11 @@
+{
+  "labels" : [
+    {
+      "folder": "sphere_4d",
+      "name": "Sphere in 4D space (S_3)",
+      "key": 48,
+      "noimages": true
+    }
+  ],
+  "initId": 0
+}

@@ -383,32 +383,33 @@ function initScene(sc) {
     imageSize[sc] = properties[sc].imageSize;
 
     // Images
-    let path = description.labels[sc].images_bin != null ?
-        get_yadisk_link(description.labels[sc].images_bin) :
-        dataFolder + 'images.bin';
-    loadbytearray(path, function (binary) {
-        imagesBinarySliced[sc] = [];
-        for (let i = 0; i < data[sc].length; i++) {
-            let len = imageSize[sc][0] * imageSize[sc][1] * imageSize[sc][2];
-            let map = binary.slice(i * len, (i + 1) * len);
-            imagesBinarySliced[sc].push(map);
-        }
-        updateScene();
-    }, 'images.bin');
-    path = description.labels[sc].images_decoded_bin != null ?
-        get_yadisk_link(description.labels[sc].images_decoded_bin) :
-        dataFolder + 'images_decoded.bin';
-    loadbytearray(path, function (binary) {
-        imagesDecodedSliced[sc] = [];
-        for (let i = 0; i < data[sc].length; i++) {
-            let len = imageSize[sc][0] * imageSize[sc][1] * imageSize[sc][2];
-            let map = binary.slice(i * len, (i + 1) * len);
-            imagesDecodedSliced[sc].push(map);
-        }
-        updateScene();
-    }, 'images_decoded.bin');
+    if (!description.labels[sc].noimages) {
+        let path = description.labels[sc].images_bin != null ?
+            get_yadisk_link(description.labels[sc].images_bin) :
+            dataFolder + 'images.bin';
+        loadbytearray(path, function (binary) {
+            imagesBinarySliced[sc] = [];
+            for (let i = 0; i < data[sc].length; i++) {
+                let len = imageSize[sc][0] * imageSize[sc][1] * imageSize[sc][2];
+                let map = binary.slice(i * len, (i + 1) * len);
+                imagesBinarySliced[sc].push(map);
+            }
+            updateScene();
+        }, 'images.bin');
+        path = description.labels[sc].images_decoded_bin != null ?
+            get_yadisk_link(description.labels[sc].images_decoded_bin) :
+            dataFolder + 'images_decoded.bin';
+        loadbytearray(path, function (binary) {
+            imagesDecodedSliced[sc] = [];
+            for (let i = 0; i < data[sc].length; i++) {
+                let len = imageSize[sc][0] * imageSize[sc][1] * imageSize[sc][2];
+                let map = binary.slice(i * len, (i + 1) * len);
+                imagesDecodedSliced[sc].push(map);
+            }
+            updateScene();
+        }, 'images_decoded.bin');
+    }
     labels[sc] = loadarray(dataFolder + 'labels.txt', parseInt);
-
     // Points
     data[sc] = loadarray(dataFolder + 'points_3d.txt', parseFloat, 1);
     pointsComponent[sc] = makePointsComponent(data[sc], labels[sc]);
