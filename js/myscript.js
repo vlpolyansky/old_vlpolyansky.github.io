@@ -138,6 +138,29 @@ function makeCycleImagesComponent(cycle, data, imagesBinarySliced) {
 
             group.add(sprite);
         }
+    } else {
+        let merged = [].concat.apply([], cycle);
+        let points = unique(merged);
+        for (let i = 0; i < points.length; i++) {
+            let idx = points[i];
+
+            let map = imagesBinarySliced[idx];
+            let texture = new THREE.DataTexture(map, imageSize[sc][0], imageSize[sc][1],
+                imageSize[sc][2] === 1 ? THREE.LuminanceFormat : THREE.RGBFormat);
+            texture.flipY = true;
+            texture.needsUpdate = true;
+
+            let spriteMaterial = new THREE.SpriteMaterial({map: texture, color: 0xffffff});
+
+            let sprite = new THREE.Sprite(spriteMaterial);
+            let scale = cycleScale;
+
+            sprite.position.set(data[idx][0], data[idx][1], data[idx][2]);
+            sprite.scale.set(scale, scale, scale);
+            sprite.needsUpdate = true;
+
+            group.add(sprite);
+        }
     }
 
     return group;

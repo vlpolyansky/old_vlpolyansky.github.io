@@ -1,0 +1,22 @@
+{
+  "labels" : [
+    {
+      "folder": "cifar_rot_dim3",
+      "name": "cifar_rot_dim3",
+      "key": 49,
+      "noimages": true
+    },
+    {
+      "folder": "cifar_rot_dim20",
+      "name": "cifar_rot_dim20",
+      "key": 50,
+      "noimages": true
+    },
+    {
+      "folder": "earth_4d_1_0",
+      "name": "test",
+      "key": 51
+    }
+  ],
+  "initId": 0
+}
