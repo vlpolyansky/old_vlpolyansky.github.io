@@ -292,6 +292,7 @@ function makeSelectedImageSprite() {
 let selectedImageSprite = {};
 
 scene = initScene(sc);
+updatePlot();
 updateInfo();
 
 // Rendering & ray casting
