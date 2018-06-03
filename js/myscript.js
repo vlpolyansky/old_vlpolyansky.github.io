@@ -27,6 +27,11 @@ let renderer = new THREE.WebGLRenderer();
 renderer.setSize( window.innerWidth, window.innerHeight );
 document.body.appendChild( renderer.domElement );
 
+const backgroundColors = [new THREE.Color(0x000000), new THREE.Color(0xffffff)];
+let curBackgroundColorIdx = 0;
+
+const pointSize = 2;
+
 camera.position.z = 5;
 
 let properties = {};
@@ -42,20 +47,22 @@ let labels = {};
 let data = {};
 let pointsComponent = {};
 
-let labelColors = [];
+let labelColors = [[], []];
 for (let i = 0; i < 10; i++) {
     let c = rainbow(10, i);
-    c = c | 0x3f3f3f;
-    labelColors.push(new THREE.Color(c));
+    let c0 = c | 0x3f3f3f;
+    let c1 = c & 0x8f8f8f;
+    labelColors[0].push(new THREE.Color(c0));
+    labelColors[1].push(new THREE.Color(c1));
 }
 
 function makePointsComponent(data, labels) {
     let geometry = new THREE.Geometry();
     for (let i = 0; i < data.length; i++) {
         geometry.vertices.push(new THREE.Vector3(data[i][0], data[i][1], data[i][2]));
-        geometry.colors.push(labelColors[labels[i][0]]);
+        geometry.colors.push(labelColors[curBackgroundColorIdx][labels[i][0]]);
     }
-    let material = new THREE.PointsMaterial({size: 1, vertexColors: THREE.VertexColors, sizeAttenuation: false});
+    let material = new THREE.PointsMaterial({size: pointSize, vertexColors: THREE.VertexColors, sizeAttenuation: false});
     return new THREE.Points(geometry, material);
 }
 
@@ -67,7 +74,7 @@ function makeFilteredPointsComponent(dataFiltered, data, pointsComponent) {
         geometry.vertices.push(new THREE.Vector3(data[dataFiltered[i]][0], data[dataFiltered[i]][1], data[dataFiltered[i]][2]));
         geometry.colors.push(pointsComponent.geometry.colors[dataFiltered[i]]);
     }
-    let material = new THREE.PointsMaterial({size: 1, vertexColors: THREE.VertexColors, sizeAttenuation: false});
+    let material = new THREE.PointsMaterial({size: pointSize, vertexColors: THREE.VertexColors, sizeAttenuation: false});
     return new THREE.Points(geometry, material);
 }
 let dataFiltered = {};
@@ -248,6 +255,9 @@ function onDocumentKeyDown(event) {
     } else if (keyCode >= 96 && keyCode <= 105) { // NUM_0-NUM_9
         selectedCycle[sc] = keyCode - 96 - 1;
         updateSelectedCycle();
+    } else if (keyCode === 66) { // B
+        curBackgroundColorIdx = (curBackgroundColorIdx + 1) % backgroundColors.length;
+        updateBackgroundColor();
     } else if (keyCode === 67) { // C
         showCycles = !showCycles;
         updateSelectedCycle();
@@ -552,7 +562,8 @@ function updateControls() {
         '            &lt;I&gt;: show/hide <u>i</u>mages on a selected cycle<br><br>\n' +
         '            &lt;D&gt;: switch between source images and <u>d</u>ecoded images<br>' +
         '            &lt;F&gt;: switch between all points and <u>f</u>iltered points used for analysis<br><br>' +
-        '&lt;+&gt/&lt;-&gt: change sprites\' scale';
+        '&lt;+&gt/&lt;-&gt: change sprites\' scale<br>' +
+            '&lt;B&gt;: invert background color';
 
         document.getElementById('controls').innerHTML = line;
     }
@@ -607,6 +618,16 @@ function updatePlot() {
     }
 }
 
+function updateBackgroundColor() {
+    scene.background = backgroundColors[curBackgroundColorIdx];
+    var geometry = pointsComponent[sc].geometry;
+    geometry.colors = [];
+    for (let i = 0; i < data[sc].length; i++) {
+        geometry.colors.push(labelColors[curBackgroundColorIdx][labels[sc][i][0]]);
+    }
+    geometry.colorsNeedUpdate = true;
+}
+
 function updateScene() {
     updatePicked();
     updateSelectedCycle();
@@ -614,4 +635,5 @@ function updateScene() {
     updateInfo();
     updateControls();
     updatePlot();
+    updateBackgroundColor();
 }
