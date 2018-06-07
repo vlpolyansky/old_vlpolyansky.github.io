@@ -17,7 +17,11 @@ console.log(dataFolders);
 
 let sc = description.initId;
 
-scenes = {};
+let scenes = {};
+
+let grids = {};
+let gridsGroups = {};
+let gridVisible = true;
 
 let scene = undefined;
 let camera = new THREE.PerspectiveCamera( 75, window.innerWidth/window.innerHeight, 0.1, 1000 );
@@ -30,7 +34,9 @@ document.body.appendChild( renderer.domElement );
 const backgroundColors = [new THREE.Color(0x000000), new THREE.Color(0xffffff)];
 let curBackgroundColorIdx = 0;
 
-const pointSize = 2;
+const pointSize = 3;
+const lineSize = 4;
+const wireframeSize = 2;
 
 camera.position.z = 5;
 
@@ -91,7 +97,7 @@ function makeCycleComponent(cycle, color, data) {
         for (let i = 0; i < cycle.length; i++) {
             geometry.vertices.push(new THREE.Vector3(data[cycle[i]][0], data[cycle[i]][1], data[cycle[i]][2]));
         }
-        material = new THREE.LineBasicMaterial({color: color, linewidth: 3, opacity: 0.8});
+        material = new THREE.LineBasicMaterial({color: color, linewidth: lineSize, opacity: 0.8});
         material.transparent = true;
         return new THREE.Line(geometry, material);
     } else if (cycle[0].length === 3) {
@@ -110,7 +116,7 @@ function makeCycleComponent(cycle, color, data) {
         let mesh = new THREE.Mesh(geometry, material);
 
         let wireframeGeometry = new THREE.EdgesGeometry(mesh.geometry);
-        let wireframeMaterial = new THREE.LineBasicMaterial({color: color, linewidth: 2, opacity: 0.6});
+        let wireframeMaterial = new THREE.LineBasicMaterial({color: color, linewidth: wireframeSize, opacity: 0.6});
         wireframeMaterial.transparent = true;
         let wireframe = new THREE.LineSegments(wireframeGeometry, wireframeMaterial);
         mesh.add(wireframe);
@@ -121,12 +127,19 @@ function makeCycleComponent(cycle, color, data) {
 }
 
 let cycleScale = 0.1;
+let cycleSkip = 1;
+let distSkip = 0.2;
 function makeCycleImagesComponent(cycle, data, imagesBinarySliced) {
     let group = new THREE.Group();
     if (cycle[0].length === 1) {
         // H1
-        for (let i = 0; i < cycle.length; i++) {
+        let prevIdx = -1;
+        for (let i = 0; i < cycle.length; i += cycleSkip) {
             let idx = cycle[i];
+            if (prevIdx !== -1 && distSqr(data[idx], data[prevIdx]) < distSkip * distSkip) {
+                continue;
+            }
+            prevIdx = idx;
 
             let map = imagesBinarySliced[idx];
             let texture = new THREE.DataTexture(map, imageSize[sc][0], imageSize[sc][1],
@@ -194,7 +207,7 @@ function makeKillerComponent(killer, color, data) {
     let mesh = new THREE.Mesh(geometry, material);
 
     let wireframeGeometry = new THREE.EdgesGeometry(mesh.geometry);
-    let wireframeMaterial = new THREE.LineBasicMaterial({color: color, linewidth: 2, opacity: 0.8});
+    let wireframeMaterial = new THREE.LineBasicMaterial({color: color, linewidth: wireframeSize, opacity: 0.8});
     wireframeMaterial.transparent = true;
     let wireframe = new THREE.LineSegments(wireframeGeometry, wireframeMaterial);
     mesh.add(wireframe);
@@ -265,6 +278,9 @@ function onDocumentKeyDown(event) {
         showSourceImages = !showSourceImages;
         updatePicked(true);
         updateSelectedCycle();
+    } else if (keyCode === 71) { // G
+        gridVisible = !gridVisible;
+        updateFullGrid();
     } else if (keyCode === 72) { // H
         showControls = !showControls;
         updateControls();
@@ -329,6 +345,7 @@ let animate = function () {
     requestAnimationFrame( animate );
 
     updatePicked();
+    updateGrid();
 
     renderer.render( scene, camera );
 };
@@ -413,6 +430,29 @@ function initScene(sc) {
     let scene = new THREE.Scene();
     scenes[sc] = scene;
 
+    grids[sc] = [];
+    gridsGroups[sc] = new THREE.Group();
+    for (let i = 0; i < 6; i++) {
+        grids[sc].push(new THREE.GridHelper(2, 20));
+        gridsGroups[sc].add(grids[sc][i]);
+    }
+    grids[sc][0].rotateZ(0.5 * Math.PI);
+    grids[sc][0].position.set(-1, 0, 0);
+    grids[sc][1].rotateZ(0.5 * Math.PI);
+    grids[sc][1].position.set(+1, 0, 0);
+
+    // grids[sc][2].rotateY(0.5 * Math.PI);
+    grids[sc][2].position.set(0, -1, 0);
+    // grids[sc][3].rotateY(0.5 * Math.PI);
+    grids[sc][3].position.set(0, +1, 0);
+
+    grids[sc][4].rotateX(0.5 * Math.PI);
+    grids[sc][4].position.set(0, 0, -1);
+    grids[sc][5].rotateX(0.5 * Math.PI);
+    grids[sc][5].position.set(0, 0, +1);
+
+    scene.add(gridsGroups[sc]);
+
     properties[sc] = JSON.parse(loadtext(dataFolder + 'properties.json'));
     imageSize[sc] = properties[sc].imageSize;
 
@@ -422,6 +462,7 @@ function initScene(sc) {
             get_yadisk_link(description.labels[sc].images_bin) :
             dataFolder + 'images.bin';
         loadbytearray(path, function (binary) {
+            // binary = binary.map(function(x) {return 255 - x;});
             imagesBinarySliced[sc] = [];
             for (let i = 0; i < data[sc].length; i++) {
                 let len = imageSize[sc][0] * imageSize[sc][1] * imageSize[sc][2];
@@ -563,7 +604,8 @@ function updateControls() {
         '            &lt;D&gt;: switch between source images and <u>d</u>ecoded images<br>' +
         '            &lt;F&gt;: switch between all points and <u>f</u>iltered points used for analysis<br><br>' +
         '&lt;+&gt/&lt;-&gt: change sprites\' scale<br>' +
-            '&lt;B&gt;: invert background color';
+            '&lt;B&gt;: invert background color<br>' +
+            '&lt;G&gt;: show/hide grid';
 
         document.getElementById('controls').innerHTML = line;
     }
@@ -612,6 +654,16 @@ function updatePicked(force = false) {
     }
 }
 
+function updateGrid() {
+    let pos = camera.position;
+    grids[sc][0].visible = pos.x > -1;
+    grids[sc][1].visible = pos.x < +1;
+    grids[sc][2].visible = pos.y > -1;
+    grids[sc][3].visible = pos.y < +1;
+    grids[sc][4].visible = pos.z > -1;
+    grids[sc][5].visible = pos.z < +1;
+}
+
 function updatePlot() {
     if (document.getElementById('plot') != null) {
         document.getElementById('plot').src = dataFolders[sc] + 'plot.png';
@@ -628,6 +680,10 @@ function updateBackgroundColor() {
     geometry.colorsNeedUpdate = true;
 }
 
+function updateFullGrid() {
+    gridsGroups[sc].visible = gridVisible;
+}
+
 function updateScene() {
     updatePicked();
     updateSelectedCycle();
@@ -636,4 +692,5 @@ function updateScene() {
     updateControls();
     updatePlot();
     updateBackgroundColor();
+    updateFullGrid();
 }
