@@ -672,12 +672,21 @@ function updatePlot() {
 
 function updateBackgroundColor() {
     scene.background = backgroundColors[curBackgroundColorIdx];
-    var geometry = pointsComponent[sc].geometry;
+
+    let geometry = pointsComponent[sc].geometry;
     geometry.colors = [];
     for (let i = 0; i < data[sc].length; i++) {
         geometry.colors.push(labelColors[curBackgroundColorIdx][labels[sc][i][0]]);
     }
     geometry.colorsNeedUpdate = true;
+
+    geometry = filteredPointsComponent[sc].geometry;
+    geometry.colors = [];
+    for (let i = 0; i < dataFiltered[sc].length; i++) {
+        geometry.colors.push(pointsComponent[sc].geometry.colors[dataFiltered[sc][i]]);
+    }
+    geometry.colorsNeedUpdate = true;
+
 }
 
 function updateFullGrid() {
