@@ -120,9 +120,9 @@
 
     <script>
 
-        var MAX_POINTS = 32;
+        var MAX_POINTS = 16;
 
-        var POINT_INITIAL_COUNT = 32;
+        var POINT_INITIAL_COUNT = 16;
         var POINT_SPEED = 0.0001;
         var POINT_LIGHT_RANGE = 0.01;
 
@@ -283,6 +283,7 @@
             point.seg_angle = Math.random() * 2 * Math.PI;
             point.seg_length = 0.05 + Math.random() * 0.05;
             point.seg_rot_speed = 0.0004 * (1 + Math.random());
+            if (Math.random() < 0.5) point.seg_rot_speed *= -1;
             point.color = hsv_to_rgb(next_random_hue(), 0.5, 0.95).concat([1.0]);
             var index = Math.random() * 3;
             for (var i = 2; i >= 0; i--) {
