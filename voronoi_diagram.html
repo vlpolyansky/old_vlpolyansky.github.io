@@ -1,0 +1,427 @@
+<html style="height: 100%">
+<head>
+    <title>Voronoi diagram. PolarNick WebGL.</title>
+
+    <script src="resources/commons/gl.js" type="text/javascript"></script>
+    <script src="resources/commons/js.js" type="text/javascript"></script>
+    <script src="resources/commons/utils.js" type="text/javascript"></script>
+
+    <script src="resources/webgl-debug.js" type="text/javascript"></script>
+
+    <script id="vshader" type="x-shader/x-vertex">
+        #line 12
+
+        attribute vec2 position;
+
+        varying vec2 xy;
+
+        void main()
+        {
+            xy = (position + vec2(1.0, 1.0)) / 2.0;
+            gl_Position = vec4(position, 0.0, 1.0);
+        }
+    </script>
+
+    <script id="fshader" type="x-shader/x-fragment">
+        #line 26
+
+        precision mediump float;
+
+        uniform float time;
+
+        uniform int points_count;
+
+        uniform vec2 point_start_xy[MAX_POINTS];
+        uniform vec2 point_speed_xy[MAX_POINTS];
+        uniform float segment_angle_xy[MAX_POINTS];
+        uniform float segment_length_xy[MAX_POINTS];
+        uniform float segment_rot_speed_xy[MAX_POINTS];
+        uniform vec4 point_color[MAX_POINTS];
+        uniform float point_light_range[MAX_POINTS];
+
+        uniform float x_multiplier;
+        uniform float y_multiplier;
+
+        varying vec2 xy;
+
+        float pow4(float x) {
+            float x2 = x * x;
+            return x2 * x2;
+        }
+
+        float pow3(float x) {
+            return x * x * x;
+        }
+
+        float distance_point_to_line(vec2 a, vec2 b, vec2 c) {
+            return abs((c.y - b.y) * a.x - (c.x - b.x) * a.y + c.x * b.y - c.y * b.x) / length(b - c);
+        }
+
+        float calculate_distance(vec2 a, vec2 b, vec2 shift) {
+            vec2 border = vec2(x_multiplier, y_multiplier);
+            float dist = length(border);
+            vec2 c = b + shift;
+            for (float dx = -1.0; dx < 2.0; dx++) {
+                for (float dy = -1.0; dy < 2.0; dy++) {
+                    vec2 cur = a + vec2(dx * x_multiplier, dy * y_multiplier);
+                    if (dot(cur - b, c - b) > 0.0 && dot(cur - c, b - c) > 0.0) {
+                        dist = min(dist, distance_point_to_line(cur, b, c));
+                    } else {
+                        float d1 = length(cur - b);
+                        float d2 = length(cur - c);
+                        dist = min(dist, min(d1, d2));
+                    }
+                }
+            }
+
+            return dist;
+        }
+
+        void main()
+        {
+            if (points_count == 0) {
+                gl_FragColor = vec4(0, 0, 0.1, 1);
+                return;
+            }
+
+            vec2 cur_xy = xy * vec2(x_multiplier, y_multiplier);
+            vec2 position = fract(point_start_xy[0] + point_speed_xy[0] * time) * vec2(x_multiplier, y_multiplier);
+            float cos_rot = cos(segment_angle_xy[0] + segment_rot_speed_xy[0] * time);
+            float sin_rot = sin(segment_angle_xy[0] + segment_rot_speed_xy[0] * time);
+            vec2 shift = vec2(segment_length_xy[0] * cos_rot, segment_length_xy[0] * sin_rot) * vec2(x_multiplier, y_multiplier);
+
+            float min_dist = calculate_distance(cur_xy, position, shift);
+            vec2 nearest_point = position;
+            float nearest_point_range = point_light_range[0];
+            vec4 nearest_point_color = point_color[0];
+
+            for (int i = 1; i < MAX_POINTS; i++) {
+                if (i >= points_count) {
+                    break;
+                }
+                vec2 position = fract(point_start_xy[i] + point_speed_xy[i] * time) * vec2(x_multiplier, y_multiplier);
+                float cos_rot = cos(segment_angle_xy[i] + segment_rot_speed_xy[i] * time);
+                float sin_rot = sin(segment_angle_xy[i] + segment_rot_speed_xy[i] * time);
+                vec2 shift = vec2(segment_length_xy[i] * cos_rot, segment_length_xy[i] * sin_rot) * vec2(x_multiplier, y_multiplier);
+                float dist = calculate_distance(cur_xy, position, shift);
+                if (dist < min_dist) {
+                    min_dist = dist;
+                    nearest_point = position;
+                    nearest_point_range = point_light_range[i];
+                    nearest_point_color = point_color[i];
+                }
+            }
+
+            float dist = min_dist; //euclidean_distance(cur_xy, nearest_point);
+            float attenuation = 1.0/(1.0 + 1000.0 * dist + 10000.0 * dist * dist);
+            gl_FragColor = nearest_point_color * 0.2 + vec4(attenuation, attenuation, attenuation, 0.8) * nearest_point_color;
+        }
+    </script>
+
+    <script>
+
+        var MAX_POINTS = 32;
+
+        var POINT_INITIAL_COUNT = 32;
+        var POINT_SPEED = 0.0001;
+        var POINT_LIGHT_RANGE = 0.01;
+
+        /*
+         * 0 - Euclidean distance
+         * 1 - Manhattan distance
+         */
+        var distance_type = 0;
+
+        /*
+         * 0 - border is border (space is rectangle for distance)
+         * 1 - border is a teleport (space is torus for distance)
+         */
+        var border_type = 0;
+
+        var width;
+        var height;
+
+        var gl_program;
+
+        var points = [];
+
+        function init_locations() {
+            gl_program.positionAttrib = gl.getAttribLocation(gl_program, 'position');
+
+            gl_program.timeUniform = gl.getUniformLocation(gl_program, 'time');
+            gl_program.pointsCountUniform = gl.getUniformLocation(gl_program, 'points_count');
+            gl_program.distanceTypeUniform = gl.getUniformLocation(gl_program, 'distance_type');
+            gl_program.borderTypeUniform = gl.getUniformLocation(gl_program, 'border_type');
+
+            gl_program.pointStartUniforms = [];
+            gl_program.pointSpeedUniforms = [];
+            gl_program.segmentAngleUniforms = [];
+            gl_program.segmentLengthUniforms = [];
+            gl_program.segmentRotSpeedUniforms = [];
+            gl_program.pointColorUniforms = [];
+            gl_program.pointLightRangeUniforms = [];
+            for (var i = 0; i < MAX_POINTS; i++) {
+                gl_program.pointStartUniforms.push(gl.getUniformLocation(gl_program, 'point_start_xy[POINT_INDEX]'.replace('POINT_INDEX', i.toString())));
+                gl_program.pointSpeedUniforms.push(gl.getUniformLocation(gl_program, 'point_speed_xy[POINT_INDEX]'.replace('POINT_INDEX', i.toString())));
+                gl_program.segmentAngleUniforms.push(gl.getUniformLocation(gl_program, 'segment_angle_xy[POINT_INDEX]'.replace('POINT_INDEX', i.toString())));
+                gl_program.segmentLengthUniforms.push(gl.getUniformLocation(gl_program, 'segment_length_xy[POINT_INDEX]'.replace('POINT_INDEX', i.toString())));
+                gl_program.segmentRotSpeedUniforms.push(gl.getUniformLocation(gl_program, 'segment_rot_speed_xy[POINT_INDEX]'.replace('POINT_INDEX', i.toString())));
+                gl_program.pointColorUniforms.push(gl.getUniformLocation(gl_program, 'point_color[POINT_INDEX]'.replace('POINT_INDEX', i.toString())));
+                gl_program.pointLightRangeUniforms.push(gl.getUniformLocation(gl_program, 'point_light_range[POINT_INDEX]'.replace('POINT_INDEX', i.toString())));
+            }
+
+            gl_program.xMultiplierUniform = gl.getUniformLocation(gl_program, 'x_multiplier');
+            gl_program.yMultiplierUniform = gl.getUniformLocation(gl_program, 'y_multiplier');
+        }
+
+        function upload_data() {
+            var positions = new Float32Array([
+                -1, -1,
+                -1, 1,
+                1, 1,
+                1, -1]);
+            var indices = new Uint8Array([
+                0, 1, 2,
+                0, 2, 3
+            ]);
+
+            gl_program.indices_length = indices.length;
+
+            gl_program.index_buf = new VertexBufferObject(gl.ELEMENT_ARRAY_BUFFER);
+            gl_program.index_buf.bind();
+            gl.bufferData(gl_program.index_buf.target, indices, gl.STATIC_DRAW);
+            gl_program.index_buf.unbind();
+
+            gl_program.position_buf = new VertexBufferObject();
+            gl_program.position_buf.bind();
+            gl.bufferData(gl_program.position_buf.target, positions, gl.STATIC_DRAW);
+            gl_program.position_buf.unbind();
+        }
+
+        function bind_attributes() {
+            gl_program.position_buf.bind();
+            gl.enableVertexAttribArray(gl_program.position_buf);
+            gl.vertexAttribPointer(gl_program.positionAttrib, 2, gl.FLOAT, false, 2*4, 0);
+            gl_program.position_buf.unbind();
+        }
+
+        var start_time = null;
+        var passed_time = null;
+        var paused = false;
+
+        function pause() {
+            paused = true;
+            var cur_time = new Date().getTime();
+            passed_time = cur_time - start_time;
+            start_time = null;
+        }
+
+        function unpause() {
+            paused = false;
+            var cur_time = new Date().getTime();
+            start_time = cur_time - passed_time;
+            passed_time = null;
+        }
+
+        function update() {
+            var time;
+            if (paused) {
+                time = passed_time;
+            } else {
+                var cur_time = new Date().getTime();
+                if (start_time == null) {
+                    start_time = cur_time;
+                }
+                time = cur_time - start_time;
+            }
+
+            gl.useProgram(gl_program);
+            gl.uniform1f(gl_program.timeUniform, time);
+
+            gl.uniform1f(gl_program.xMultiplierUniform, width / width);
+            gl.uniform1f(gl_program.yMultiplierUniform, height / width);
+            gl.useProgram(null);
+        }
+
+        function update_points_count() {
+            gl.useProgram(gl_program);
+            gl.uniform1i(gl_program.pointsCountUniform, points.length);
+            gl.useProgram(null);
+        }
+
+        function update_distance_type(distance_type) {
+            gl.useProgram(gl_program);
+            gl.uniform1i(gl_program.distanceTypeUniform, distance_type);
+            gl.useProgram(null);
+        }
+
+        function update_border_type(border_type) {
+            gl.useProgram(gl_program);
+            gl.uniform1i(gl_program.borderTypeUniform, border_type);
+            gl.useProgram(null);
+        }
+
+        function upload_point(point_index) {
+            gl.useProgram(gl_program);
+            var point = points[point_index];
+            gl.uniform2f(gl_program.pointStartUniforms[point_index], point.start_position[0], point.start_position[1]);
+            gl.uniform2f(gl_program.pointSpeedUniforms[point_index], point.speed[0], point.speed[1]);
+            gl.uniform1f(gl_program.segmentAngleUniforms[point_index], point.seg_angle);
+            gl.uniform1f(gl_program.segmentLengthUniforms[point_index], point.seg_length);
+            gl.uniform1f(gl_program.segmentRotSpeedUniforms[point_index], point.seg_rot_speed);
+            gl.uniform4f(gl_program.pointColorUniforms[point_index], point.color[0], point.color[1], point.color[2], point.color[3]);
+            gl.uniform1f(gl_program.pointLightRangeUniforms[point_index], point.light_range);
+            gl.useProgram(null);
+        }
+
+        function create_random_point() {
+            var point = {};
+            point.start_position = [Math.random(), Math.random()];
+            var angle = Math.random() * 2 * Math.PI;
+            var speed_length = (1 + Math.random()) * (POINT_SPEED / 2);
+            point.speed = [speed_length * Math.cos(angle), speed_length * Math.sin(angle)];
+            point.seg_angle = Math.random() * 2 * Math.PI;
+            point.seg_length = 0.05 + Math.random() * 0.05;
+            point.seg_rot_speed = 0.0004 * (1 + Math.random());
+            point.color = hsv_to_rgb(next_random_hue(), 0.5, 0.95).concat([1.0]);
+            var index = Math.random() * 3;
+            for (var i = 2; i >= 0; i--) {
+                if (index > i) {
+                    point.color[i] = Math.min(1, point.color[i] + 0.5);
+                    break;
+                }
+            }
+            point.light_range = POINT_LIGHT_RANGE;
+
+            //console.log("New point:\n position=", point.start_position, ",\n speed=", point.speed, ',\n color=', point.color);
+            return point;
+        }
+
+        function render_frame() {
+            gl.enable(gl.DEPTH_TEST);
+
+            gl.viewport(0, 0, width, height);
+
+            gl.clearColor(0, 0, 0.1, 1);
+            gl.clearDepth(1.0);
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+            gl_program.index_buf.bind();
+            gl.drawElements(gl.TRIANGLES, gl_program.indices_length, gl.UNSIGNED_BYTE, 0);
+            gl_program.index_buf.unbind();
+        }
+
+        function update_canvas_shape(canvas) {
+            if (canvas.width != canvas.clientWidth ||
+                    canvas.height != canvas.clientHeight) {
+                canvas.width = canvas.clientWidth;
+                canvas.height = canvas.clientHeight;
+                width = canvas.width;
+                height = canvas.height;
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        function register_keys_handlers() {
+            var key_handler = function(keyboard_event) {
+                var should_render = false;
+                if (keyboard_event.keyCode == 32) {// 32: ' '
+                    if (paused) {
+                        paused = false;
+                        unpause();
+                    } else {
+                        paused = true;
+                        pause();
+                    }
+                } else if (keyboard_event.keyCode == 77 || keyboard_event.keyCode == 109) {// 77: 'M', 109: 'm'
+                    distance_type = (distance_type + 1) % 2;
+                    update_distance_type(distance_type);
+                    should_render = true;
+                } else if (keyboard_event.keyCode == 84 || keyboard_event.keyCode == 116) {// 84: 'T', 116: 't'
+                    border_type = (border_type + 1) % 2;
+                    update_border_type(border_type);
+                    should_render = true;
+                }
+
+                if (paused && should_render) {
+                    gl.useProgram(gl_program);
+                    bind_attributes();
+                    render_frame();
+                    gl.useProgram(null);
+                }
+            };
+
+            window.addEventListener('keypress', key_handler, false);
+        }
+
+        function onready()
+        {
+            var canvas = document.getElementById('webgl_canvas');
+
+            if (!setupWebGL(canvas)) {
+                alert('No WebGL support!');
+                return;
+            }
+            var framerate = new Framerate("framerate_canvas");
+
+            var vertex_shader_code = document.getElementById("vshader").text;
+            var fragment_shader_code = document.getElementById("fshader").text;
+            fragment_shader_code = fragment_shader_code.split("MAX_POINTS").join(MAX_POINTS.toString());
+            gl_program = build_program(vertex_shader_code, fragment_shader_code);
+
+            init_locations();
+            upload_data();
+
+            for (var i = 0; i < POINT_INITIAL_COUNT; i++) {
+                var point = create_random_point();
+                points.push(point);
+                upload_point(i);
+            }
+            update_points_count();
+            update_distance_type(distance_type);
+
+            paused = false;
+            var prev = new Date().getTime();
+            var start_loop = function () {
+                if (update_canvas_shape(canvas) || !paused) {
+
+                    var time = new Date().getTime();
+                    console.log(time - prev);
+                    prev = time;
+
+                    update();
+
+                    gl.useProgram(gl_program);
+                    bind_attributes();
+                    render_frame();
+                    gl.useProgram(null);
+                    gl.finish();
+
+                    framerate.snapshot();
+                }
+                requestAnimFrameSmart(start_loop, canvas);
+            };
+
+            register_keys_handlers();
+            start_loop();
+        }
+    </script>
+
+</head>
+<body onload="onready();" style="margin: 0; padding: 0; height: 100%">
+<canvas id="webgl_canvas" style="width: 100%; height: 100%"></canvas>
+<div id="framerate_canvas" style="
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    color: white">
+    Framerate: {FPS} FPS<br/>
+    <br/>
+    Shout-out to Polyarniy Nikolay and his <a href="http://polarnick.com/old/webgl/demos/voronoi_diagram.html">implementation</a> of Voronoi diagram.
+    <br/>
+    Press SPACE to pause<br/>
+</div>
+</body>
+</html>

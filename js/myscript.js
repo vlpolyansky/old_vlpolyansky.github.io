@@ -34,7 +34,7 @@ document.body.appendChild( renderer.domElement );
 const backgroundColors = [new THREE.Color(0x000000), new THREE.Color(0xffffff)];
 let curBackgroundColorIdx = 0;
 
-const pointSize = 3;
+const pointSize = 2;
 const lineSize = 4;
 const wireframeSize = 2;
 
@@ -501,14 +501,14 @@ function initScene(sc) {
     filteredPointsComponent[sc] = makeFilteredPointsComponent(dataFiltered[sc], data[sc], pointsComponent[sc]);
 
     // Cycles
-    let colors = [0xff0000, 0x00ff00, 0xffff00, 0xff00ff];
+    let colors = [0xff0000, 0x00ff00, 0x00ffff, 0xff00ff, 0x3f3f3f];
     cycles[sc] = [];
     cycleComponents[sc] = [];
     killerComponents[sc] = [];
     cycleImageComponents[sc] = [];
     cycleDecodedComponents[sc] = [];
     selectedCycle[sc] = -1;
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 6; i++) {
         let cycle = loadarray(dataFolder + 'cycle_' + i.toString() + '.txt', parseInt);
         if (cycle != null) {
             let cycleComponent = makeCycleComponent(cycle, colors[i], data[sc]);
