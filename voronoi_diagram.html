@@ -31,6 +31,12 @@
 
         uniform int points_count;
 
+        /*
+         * 0 - Euclidean distance
+         * 1 - Manhattan distance
+         */
+        uniform int distance_type;
+
         uniform vec2 point_start_xy[MAX_POINTS];
         uniform vec2 point_speed_xy[MAX_POINTS];
         uniform float segment_angle_xy[MAX_POINTS];
@@ -57,6 +63,10 @@
             return abs((c.y - b.y) * a.x - (c.x - b.x) * a.y + c.x * b.y - c.y * b.x) / length(b - c);
         }
 
+        float manhattan_distance(vec2 a, vec2 b) {
+            return abs(a.x - b.x) + abs(a.y - b.y);
+        }
+
         float calculate_distance(vec2 a, vec2 b, vec2 shift) {
             vec2 border = vec2(x_multiplier, y_multiplier);
             float dist = length(border);
@@ -64,12 +74,25 @@
             for (float dx = -1.0; dx < 2.0; dx++) {
                 for (float dy = -1.0; dy < 2.0; dy++) {
                     vec2 cur = a + vec2(dx * x_multiplier, dy * y_multiplier);
-                    if (dot(cur - b, c - b) > 0.0 && dot(cur - c, b - c) > 0.0) {
-                        dist = min(dist, distance_point_to_line(cur, b, c));
+                    if (distance_type == 0) {
+                        if (dot(cur - b, c - b) > 0.0 && dot(cur - c, b - c) > 0.0) {
+                            dist = min(dist, distance_point_to_line(cur, b, c));
+                        } else {
+                            float d1 = length(cur - b);
+                            float d2 = length(cur - c);
+                            dist = min(dist, min(d1, d2));
+                        }
                     } else {
-                        float d1 = length(cur - b);
-                        float d2 = length(cur - c);
-                        dist = min(dist, min(d1, d2));
+                        float cur_dist = min(manhattan_distance(cur, b), manhattan_distance(cur, c));
+                        float t = (cur.x - b.x) / (c.x - b.x);
+                        if (t > 0.0 && t < 1.0) {
+                            cur_dist = min(cur_dist, manhattan_distance(cur, b + t * (c - b)));
+                        }
+                        t = (cur.y - b.y) / (c.y - b.y);
+                        if (t > 0.0 && t < 1.0) {
+                            cur_dist = min(cur_dist, manhattan_distance(cur, b + t * (c - b)));
+                        }
+                        dist = min(dist, cur_dist);
                     }
                 }
             }
@@ -281,7 +304,7 @@
             var speed_length = (1 + Math.random()) * (POINT_SPEED / 2);
             point.speed = [speed_length * Math.cos(angle), speed_length * Math.sin(angle)];
             point.seg_angle = Math.random() * 2 * Math.PI;
-            point.seg_length = 0.05 + Math.random() * 0.05;
+            point.seg_length = (1 + 2 * Math.random()) * 0.05;
             point.seg_rot_speed = 0.0004 * (1 + Math.random());
             if (Math.random() < 0.5) point.seg_rot_speed *= -1;
             point.color = hsv_to_rgb(next_random_hue(), 0.5, 0.95).concat([1.0]);
@@ -423,6 +446,7 @@
     Shout-out to Polyarniy Nikolay and his <a href="http://polarnick.com/old/webgl/demos/voronoi_diagram.html">implementation</a> of Voronoi diagram.
     <br/>
     Press SPACE to pause<br/>
+    Press M to change distance between Euclidean and Manhattan distance<br/>
 </div>
 </body>
 </html>
