@@ -6,7 +6,13 @@
       "key": 48,
       "images_bin": "Wtj_Yh_P3SWXvX",
       "images_decoded_bin": "m4FMZvFA3SWXvj"
+    },
+    {
+      "folder": "earth_s2_30k_nouni",
+      "name": "Earth rotation x2",
+      "key": 49,
+      "noimages": true
     }
   ],
-  "initId": 0
+  "initId": 1
 }

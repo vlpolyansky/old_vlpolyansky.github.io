@@ -34,7 +34,7 @@ document.body.appendChild( renderer.domElement );
 const backgroundColors = [new THREE.Color(0x000000), new THREE.Color(0xffffff)];
 let curBackgroundColorIdx = 0;
 
-const pointSize = 2;
+const pointSize = 1;
 const lineSize = 4;
 const wireframeSize = 2;
 
