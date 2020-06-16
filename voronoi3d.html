@@ -1,0 +1,62 @@
+<html>
+	<head>
+		<title>Persistent cycles</title>
+		<style>
+			body { margin: 0; }
+			canvas { width: 100%; height: 100% }
+            #controls {
+                position: absolute;
+                top: 15px;
+                left: 15px;
+                /*width: 50%;*/
+                /*text-align: center;*/
+                /*z-index: 100;*/
+                display: block;
+                color: lightblue;
+            }
+            #info {
+                position: absolute;
+                top: 15px;
+                /*right: 15px;*/
+                font-size: 20px;
+                width: 100%;
+                text-align: center;
+                /*z-index: 100;*/
+                display: block;
+                color: lightblue;
+            }
+            #logs {
+                position: absolute;
+                top: 15px;
+                right: 15px;
+                font-size: 14px;
+                width: 100%;
+                text-align: right;
+                /*z-index: 100;*/
+                display: block;
+                color: gray;
+            }
+		</style>
+	</head>
+	<body>
+		<canvas id="canvas1" width="480" height="480">
+		</canvas>
+		<canvas id="canvas2" width="480" height="480">
+		</canvas>
+        <!--<div id="controls">-->
+        <!--</div>-->
+        <!--<div id="info">-->
+        <!--</div>-->
+        <!--<div id="logs">-->
+        <!--</div>-->
+		<script src="js/three.js"></script>
+		<script src="js/OrbitControls.js"></script>
+		<script src="js/DragControls.js"></script>
+        <script src="js/utils.js"></script>
+		<script src="js/OBJExporter.js"></script>
+		<script src="js/voronoi3d_data.js"></script>
+		<script src="js/voronoi3d_anim.js"></script>
+		<script  src="js/voronoi3d.js"></script>
+
+	</body>
+</html>
